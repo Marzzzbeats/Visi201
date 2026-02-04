@@ -15,3 +15,13 @@ def test_if():
     return res
 
 print(dis(test_if))
+
+def semaine_lente():
+    secondes_par_jour = 86400
+    return secondes_par_jour * 7 
+
+def semaine_rapide():
+    return 86400*7
+
+print(dis(semaine_lente))
+print(dis(semaine_rapide))
