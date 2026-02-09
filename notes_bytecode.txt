@@ -30,10 +30,22 @@ module dis :
 	
 
 Instructions bytecode :
-	--> LOAD_FAST n : regarde dans co_varnames le nom de la variable à l'indice n et la met en haut du "evaluation stack"
+	--> LOAD_FAST n : push une variabke globale
 	--> CALL_FUNCTION : push la fonction qu'on appelle
 	--> LOAD_CONST : push une constante
-	--> 
+	--> STORE_FAST : dépile une valeur et la stock
+	--> BINARY_ADD : Addition
+	--> BINARY_SUBTRACT : soustraction
+	--> BINARY_MULTIPLY : multiplication
+	--> BINARY_TRUE_DIVIDE : division euclidienne
+	--> LOAD_NAME : Initialise une fonction
+	--> CALL_FUNCTION : appelle la fonction
+	--> POP_TOP : pop la fonction en haut de la pile
+	--> COMPARE_OP : comparateur logique
+	--> POP_JUMP_IF_FALSE : Saute si la condition surjascente est fausse
+	--> RETURN_VALUE : Dépile une valeur et la renvoie
+	--> BUILD_LIST n : Crée une liste des n elements de dessus
+	--> BUILD_TUPLE n : Même principe
 
 
 --> Il y a des jump pour les conditions, les fins de boucles etc, comme en assembleur. Sauf qu'en pyc, on precise ce qu'on doit POP. 
