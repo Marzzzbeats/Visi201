@@ -80,8 +80,10 @@ def miniVm(instructions:Bytecode):
             a = data_stack.depiler()
             division = a / b
             data_stack.empiler(division)
+    return data_stack.depiler()
+
         
 
-
+test = Bytecode()
 
 
