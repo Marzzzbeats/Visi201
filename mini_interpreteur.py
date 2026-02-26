@@ -85,5 +85,3 @@ def miniVm(instructions:Bytecode):
         
 
 test = Bytecode()
-
-
