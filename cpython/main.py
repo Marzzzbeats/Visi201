@@ -3,9 +3,9 @@
 
 from lexer import lex
 from parser import *
-from code_objet import CompilerToCodeObject
+# from code_objet import CompilerToCodeObject
 from AI_miscs.display import dump
-from AI_miscs.codeobj_pretty import dump_codeobject
+# from AI_miscs.codeobj_pretty import dump_codeobject
 
 
 # tests
