@@ -23,5 +23,11 @@ def semaine_lente():
 def semaine_rapide():
     return 86400*7
 
-print(dis(semaine_lente))
-print(dis(semaine_rapide))
+# print(dis(semaine_lente))
+# print(dis(semaine_rapide))
+
+def afficheA():
+    print("a")
+    return None
+
+print(dis(afficheA))
