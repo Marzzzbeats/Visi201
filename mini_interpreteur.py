@@ -37,7 +37,7 @@ class Bytecode():
 
     def est_vide(self):
         """Verifie si la liste est vide"""
-        return len(self.bytecode) == 0
+        return self.pointeur >= len(self.bytecode)-1
     
     def next(self):
         self.pointeur += 1
@@ -67,7 +67,7 @@ def miniVm(instructions:Bytecode):
         elif inst[0] == "BINARY_ADD":
             addition = data_stack.depiler() + data_stack.depiler()
             data_stack.empiler(addition)
-        elif inst[0] == "BINARY_SUBSTRACT":
+        elif inst[0] == "BINARY_SUBTRACT":
             b = data_stack.depiler()
             a = data_stack.depiler()
             soustraction = a - b
@@ -80,8 +80,44 @@ def miniVm(instructions:Bytecode):
             a = data_stack.depiler()
             division = a / b
             data_stack.empiler(division)
+        elif inst[0] == "COMPARE_OP":
+            b = data_stack.depiler()
+            a = data_stack.depiler()
+            op = inst[1]
+            if op == "==":
+                data_stack.empiler(a == b)
+            elif op == "<":
+                data_stack.empiler(a < b)
+            elif op == ">":
+                data_stack.empiler(a > b)
+            elif op == "<=":
+                data_stack.empiler(a <= b)
+            elif op == ">=":
+                data_stack.empiler(a >= b)
+            elif op == "!=":
+                data_stack.empiler(a != b)
+        elif inst[0] == "POP_JUMP_IF_FALSE":
+            condition = data_stack.depiler()
+            if not condition:
+                instructions.pointeur = inst[1] - 1  # -1 car next() incrémente le pointeur
+        elif inst[0] == "POP_JUMP_IF_TRUE":
+            condition = data_stack.depiler()
+            if condition:
+                instructions.pointeur = inst[1] - 1
     return data_stack.depiler()
 
-        
 
+
+
+#test
 test = Bytecode()
+test.ajouter_instruction("LOAD_CONST", 5)
+test.ajouter_instruction("LOAD_CONST", 3)
+test.ajouter_instruction("COMPARE_OP", "<")          # 5 < 3 ?
+test.ajouter_instruction("POP_JUMP_IF_FALSE", 6)     # si faux, saute à l'instruction 6
+test.ajouter_instruction("LOAD_CONST", "Oui")        # 4
+test.ajouter_instruction("POP_JUMP_IF_TRUE", 7)      # saute pour éviter le "Non"
+test.ajouter_instruction("LOAD_CONST", "Non")        # 6
+
+result = miniVm(test)
+print(result)
