@@ -82,3 +82,9 @@ Fonction rapide :
 None
 
 
+______________________________________________________________________________________________________________________________________________________________
+
+--> Pour ce qui est des fonctions, on utilise le système de frames
+--> Quand on apelle une fonction, on sauvegarde l'etat actuel (pile, pointeurs, variables...), on crée une nouvelle frame, on execute son bytecode, puis on restaure le contexte d'avant
+--> Chaque fonctions ont leur propres variables locales dans leur frame, il y a une sorte d'envapsulation
+ 
