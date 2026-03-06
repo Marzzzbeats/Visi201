@@ -24,6 +24,19 @@ class Stack():
             self.pile.pop()
         return new
 
+class Bytecode():
+
+    def __init__(self):
+        self.bytecode = []
+
+    def ajouter_instruction(self, name, value=None):
+        """Permet d'ajouter une instruction bytecode à la liste d'instruction. Selon l'instruction, la valeur peut être None"""
+        self.bytecode.append((name, value))
+    
+    def inst(self, ind:int):
+        """Renvoie l'instruction a l'indice ind"""
+        return self.bytecode[ind]
+    
 
 class Frame():
 
@@ -52,20 +65,6 @@ class Frame():
         return self.stack.depiler()
 
 
-
-class Bytecode():
-
-    def __init__(self):
-        self.bytecode = []
-
-    def ajouter_instruction(self, name, value=None):
-        """Permet d'ajouter une instruction bytecode à la liste d'instruction. Selon l'instruction, la valeur peut être None"""
-        self.bytecode.append((name, value))
-    
-    def inst(self, ind:int):
-        """Renvoie l'instruction a l'indice ind"""
-        return self.bytecode[ind]
-    
     
     
 def miniVm(instructions:Bytecode):
