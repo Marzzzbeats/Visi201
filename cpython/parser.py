@@ -119,7 +119,12 @@ class Parser:
             expr = Number(int(tok.value))
         elif tok.type == "NAME":
             self.ts.expect("NAME")
-            expr = Name(tok.value)
+            if tok.value == "True":
+                expr  = Boolean(True)
+            elif tok.value == "False":
+                expr = Boolean(False)
+            else:
+                expr = Name(tok.value)
         elif tok.type == "LPAREN":
             self.ts.expect("LPAREN")
             expr = self.parse_expression()
