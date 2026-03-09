@@ -4,7 +4,8 @@ c = a + b
 print(c)
 
 def even(x):
-    if x%2==0:
+    y = 1 + a*b
+    if x%2==0:  
         res = True
     else:
         res = False

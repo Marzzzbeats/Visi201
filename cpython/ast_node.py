@@ -28,6 +28,14 @@ class Expr(Node):
 
 
 # ---------- expressions ----------
+
+class Boolean(Expr):
+    def __init__(self, value):
+        self.value = value
+
+    def __repr__(self):
+        return f"Bool({self.value})"
+
 class Number(Expr):
     def __init__(self, value: int):
         self.value = value

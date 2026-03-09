@@ -5,7 +5,7 @@
 import dis
 
 
-it: int = 4
+it: int = 10
 
 
 def add(x, y):
