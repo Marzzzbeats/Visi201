@@ -29,9 +29,7 @@ if __name__ == "__main__":
 
     new_bytecode = coCodeToBytecode(module_code_object)
 
-    result = miniVm(new_bytecode)
-
-    print(result)
+    result = miniVm(new_bytecode) #Ici sera None car c'est un programme, mais nous faisons des print dedans
 
     #dump_codeobject(module_code_object)
 

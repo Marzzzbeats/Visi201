@@ -1,5 +1,7 @@
 import dis
 from code_objet import CompilerToCodeObject
+import builtins  #Sert a importer les fonctions de base de python pour la gestion des print
+
 
 class Stack():
 
@@ -159,29 +161,34 @@ def miniVm(instructions:Bytecode):
             else:
                 call_stack.empiler(current_frame)
                 func_code = func.code
+                func_bytecode = coCodeToBytecode(func_code)
                 new_locals = {}
 
                 #Passe les arguments aux fonctions
                 for i, val in enumerate(func.code.co_varnames[:func.argcount]): #slice pour prendre uniquement les arguments de la fonction, et eviter un index error
                     new_locals[val] = args[i]
 
-                current_frame = Frame(func_code, new_locals)
+                current_frame = Frame(func_bytecode, new_locals)
 
         elif inst[0] == "RETURN_VALUE":
             value = current_frame.stackRem()
             current_frame = call_stack.depiler()
             current_frame.stackAdd(value)
         elif inst[0] == "STORE_NAME":
-            if call_stack.taille() == 0 or current_frame == call_stack.pile[0]: #mets dans global si on est dans le frame de base
+            name = inst[1]  # inst[1] est déjà le nom de la variable
+            if call_stack.taille() == 0:
                 global_vars[name] = current_frame.stackRem()
             else:
                 current_frame.loc[name] = current_frame.stackRem()
         elif inst[0] == "LOAD_NAME":
             name = inst[1]
-            if name in current_frame.loc:  # local first
+            if name in current_frame.loc:
                 value = current_frame.loc[name]
-            elif name in global_vars:      # puis regarde sur global
+            elif name in global_vars:
                 value = global_vars[name]
+            #pont vers les fonctions natives de Python (j'ai été aidé par l'IA pour celle là)
+            elif hasattr(builtins, name): 
+                value = getattr(builtins, name)
             else:
                 raise NameError(f"name '{name}' is not defined")
             current_frame.stackAdd(value)
@@ -200,16 +207,21 @@ def coCodeToBytecode(code_object : CompilerToCodeObject):
     consts = code_object.co_consts
     names = code_object.co_names
     btc = Bytecode()
+    
     for i in range(0, len(bytecode)):
-        if bytecode[i].op == "LOAD_CONST":
-            btc.ajouter_instruction(bytecode[i].op, consts[bytecode[i].arg])
-        elif bytecode[i].op == "LOAD_NAME":
-            btc.ajouter_instruction(bytecode[i].op, names[bytecode[i].arg])
-        elif bytecode[i].op == "STORE_FAST":
-            btc.ajouter_instruction(bytecode[i].op, varnames[bytecode[i].arg])
-        else :
-            btc.ajouter_instruction(bytecode[i].op, bytecode[i].arg)
+        op = bytecode[i].op
+        arg = bytecode[i].arg
+        
+        if op == "LOAD_CONST":
+            btc.ajouter_instruction(op, consts[arg])
+        #les operations qui utilisent "names"
+        elif op in ("LOAD_NAME", "STORE_NAME", "LOAD_GLOBAL", "STORE_GLOBAL"):
+            btc.ajouter_instruction(op, names[arg])
+        #les operations qui utilisent "varnames"
+        elif op in ("LOAD_FAST", "STORE_FAST"):
+            btc.ajouter_instruction(op, varnames[arg])
+        else:
+            btc.ajouter_instruction(op, arg)
+            
     return btc
-
-
         
