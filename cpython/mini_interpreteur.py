@@ -24,6 +24,11 @@ class Stack():
         while len(self.pile)>0:
             new += [self.pile.pop()]
         return new
+    
+class Function():
+    def __init__(self, code_obj):
+        self.code = code_obj
+        self.argcount = code_obj.co_argcount
 
 
 class Frame():
@@ -83,37 +88,43 @@ def miniVm(instructions:Bytecode):
             current_frame.stackAdd(current_frame.loc[inst[1]])
         elif inst[0] == "STORE_FAST":
             current_frame.loc[inst[1]] = current_frame.stackRem()
-        elif inst[0] == "BINARY_ADD":
-            addition = current_frame.stackRem() + current_frame.stackRem()
-            current_frame.stackAdd(addition)
-        elif inst[0] == "BINARY_SUBTRACT":
-            b = current_frame.stackRem()
-            a = current_frame.stackRem()
-            soustraction = a - b
-            current_frame.stackAdd(soustraction)
-        elif inst[0] == "BINARY_MULTIPLY":
-            multiplication = current_frame.stackRem() * current_frame.stackRem()
-            current_frame.stackAdd(multiplication)
-        elif inst[0] == "BINARY_TRUE_DIVIDE":
-            b = current_frame.stackRem()
-            a = current_frame.stackRem()
-            division = a / b
-            current_frame.stackAdd(division)
+        elif inst[0] == "BINARY_OP":
+            if inst[1] == "PLUS":
+                addition = current_frame.stackRem() + current_frame.stackRem()
+                current_frame.stackAdd(addition)
+            elif inst[1] == "MINUS":
+                b = current_frame.stackRem()
+                a = current_frame.stackRem()
+                soustraction = a - b
+                current_frame.stackAdd(soustraction)
+            elif inst[1] == "STAR":
+                multiplication = current_frame.stackRem() * current_frame.stackRem()
+                current_frame.stackAdd(multiplication)
+            elif inst[1] == "SLASH":
+                b = current_frame.stackRem()
+                a = current_frame.stackRem()
+                division = a / b
+                current_frame.stackAdd(division)
+            elif inst[i] == "PERCENT":
+                b = current_frame.stackRem()
+                a = current_frame.stackRem()
+                division = a%b
+                current_frame.stackAdd(division)
         elif inst[0] == "COMPARE_OP":
             b = current_frame.stackRem()
             a = current_frame.stackRem()
             op = inst[1]
             if op == "EQEQ":
                 current_frame.stackAdd(a == b)
-            elif op == "<":
+            elif op == "LT":
                 current_frame.stackAdd(a < b)
-            elif op == ">":
+            elif op == "GT":
                 current_frame.stackAdd(a > b)
-            elif op == "<=":
+            elif op == "LE":
                 current_frame.stackAdd(a <= b)
-            elif op == ">=":
+            elif op == "GE":
                 current_frame.stackAdd(a >= b)
-            elif op == "!=":
+            elif op == "NOTEQ":
                 current_frame.stackAdd(a != b)
         elif inst[0] == "POP_JUMP_IF_FALSE":
             condition = current_frame.stackRem()
@@ -126,23 +137,35 @@ def miniVm(instructions:Bytecode):
         elif inst[0] == "JUMP_ABSOLUTE":
             current_frame.pointeur = inst[1]
         elif inst[0] == "MAKE_FUNCTION":
-            func_name, func_code = inst[1] #rajoute la fonction au dictionnaire 
-            functions[func_name] = func_code
-        elif inst[0] == "CALL_FUNCTION":
-            func_name, arg_count = inst[1]
-
+            code_obj = current_frame.stackRem()
+            func = Function(code_obj)
+            current_frame.stackAdd(func)
+        elif inst[0] == "CALL":
+            arg_count = inst[1]
             args = []
+
+            call_stack.empiler(current_frame)
+
             for i in range(arg_count):
-                args.append(current_frame.stackRem()) #on recupere les arguments
+                args.append(current_frame.stackRem())
             args.reverse()
+            func = current_frame.stackRem()
 
-            call_stack.empiler(current_frame) #o sauvegarde le frame actuel
+            # fonction python builtin. permet de gerer print par exemple
+            if callable(func):
+                result = func(*args)
+                current_frame.stackAdd(result)
+            else:
+                call_stack.empiler(current_frame)
+                func_code = func.code
+                new_locals = {}
 
-            func_btc = functions[func_name]
-            loc = {}
-            for i, val in enumerate(args):
-                loc[f"arg{i}"] = val      #permet d'avoir dans loc : {arg0 : ..., arg1 : ...}
-            current_frame = Frame(func_btc, loc)
+                #Passe les arguments aux fonctions
+                for i, val in enumerate(func.code.co_varnames[:func.argcount]): #slice pour prendre uniquement les arguments de la fonction, et eviter un index error
+                    new_locals[val] = args[i]
+
+                current_frame = Frame(func_code, new_locals)
+
         elif inst[0] == "RETURN_VALUE":
             value = current_frame.stackRem()
             current_frame = call_stack.depiler()
@@ -150,7 +173,9 @@ def miniVm(instructions:Bytecode):
         elif inst[0] == "STORE_NAME":
             current_frame.loc[inst[1]] = current_frame.stackRem()
         elif inst[0] == "LOAD_NAME":
-            current_frame.stack.empiler(loc[inst[1]])
+            current_frame.stack.empiler(current_frame.loc[inst[1]])
+        elif inst[0] == "POP_TOP":
+            current_frame.stackRem()
 
     if current_frame.stack.taille() > 0:
         res = current_frame.stackRem()
@@ -169,6 +194,8 @@ def coCodeToBytecode(code_object : CompilerToCodeObject):
             btc.ajouter_instruction(bytecode[i].op, consts[bytecode[i].arg])
         elif bytecode[i].op == "LOAD_NAME":
             btc.ajouter_instruction(bytecode[i].op, names[bytecode[i].arg])
+        elif bytecode[i].op == "STORE_FAST":
+            btc.ajouter_instruction(bytecode[i].op, varnames[bytecode[i].arg])
         else :
             btc.ajouter_instruction(bytecode[i].op, bytecode[i].arg)
     return btc
