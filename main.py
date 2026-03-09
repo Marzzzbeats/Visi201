@@ -1,11 +1,11 @@
 
 
-from mini_interpreteur import miniVm, coCodeToBytecode
-from lexer import lex
-from parser import *
-from code_objet import CompilerToCodeObject
-from AI_miscs.display import dump
-from AI_miscs.codeobj_pretty import dump_codeobject
+from cpython.mini_interpreteur import miniVm, coCodeToBytecode
+from cpython.lexer import lex
+from cpython.parser import *
+from cpython.code_objet import CompilerToCodeObject
+from cpython.AI_miscs.display import dump
+from cpython.AI_miscs.codeobj_pretty import dump_codeobject
 
 
 # tests

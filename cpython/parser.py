@@ -1,7 +1,7 @@
 
-from lexer import Token
+from cpython.lexer import Token
 from collections.abc import Generator
-from ast_node import *
+from cpython.ast_node import *
 
 
 class TokenStream:

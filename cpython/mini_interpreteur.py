@@ -1,5 +1,5 @@
 import dis
-from code_objet import CompilerToCodeObject
+from cpython.code_objet import CompilerToCodeObject
 import builtins  #Sert a importer les fonctions de base de python pour la gestion des print
 
 
