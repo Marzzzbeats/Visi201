@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser = Parser(lexed_source)
     ast = parser.parse()
 
-    print(dump(ast, indent=2))
+    # print(dump(ast, indent=2))
 
     code_object = CompilerToCodeObject(ast)
 
