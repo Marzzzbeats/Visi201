@@ -1,0 +1,90 @@
+python --> bytecode --> exec dans la VM de python
+
+.pyc --> python bytecode (visible dans le __pycache__)
+-> permet de ne pas avoir à le recompiler en bytecode quand on réexecute le programme
+
+Ressemble à de l'assembleur
+
+Code objects (__code__) --> possède tout ce dont python a besoin pour executer la fonction (attributs)
+	--> co_consts : tuple contenant les constantes ou les variables contenues dans le body de la fonction 
+	--> co_varnames : Noms des variables locales de la fonction
+	--> co_names : local names
+	--> co_code : Contient le bytecode de la fonction
+
+Comment python utilise le bytecode ? :
+	--> La VM python est stack-orientée (pile)
+	--> les opérations sont ajoutées en haut de la pile (PUSH), et retirées puis retournées (POP) (mechanique LIFO)
+	--> A chaque fois qu'une fonction est appelée, elle est push en haut de la pile dans un "frame" (suite d'instructions)
+	--> return d'une fonction = POP
+	--> Utilise 2 stacks :
+		--> Evaluation stack (ou data stack) : Là ou python garde toutes les données avec lesquelles il travaille. (utilisée par la plupart des fonctions)
+		--> Block stack : Utilisé pour les boucles, ou les try/except. Push un frame dans le block stack à chaque itération dans le cadre des boucles, et le pop à la fin
+		
+
+module dis :
+	--> dis(fct) : renvoie les instruction du bytecode de la fonction entrée en paramètres
+		--> Les chiffres à droite représentent les lignes de la fonction (= quelles instructions sont effectuées à quelle ligne)
+		--> Les chiffres de la deuxième colone (toujours pairs depuis python 3) représentent les indices des instructions dans les bytes (offsets)
+		--> Les ">>" représentent des "jumps target", soit les endroits où le code doit aller après un jump
+	--> distb() : renvoie les instructions dans la evaluation stack.
+	
+
+Instructions bytecode :
+	--> LOAD_FAST n : push une variabke globale
+	--> CALL_FUNCTION : push la fonction qu'on appelle
+	--> LOAD_CONST : push une constante
+	--> STORE_FAST : dépile une valeur et la stock
+	--> BINARY_ADD : Addition
+	--> BINARY_SUBTRACT : soustraction
+	--> BINARY_MULTIPLY : multiplication
+	--> BINARY_TRUE_DIVIDE : division euclidienne
+	--> LOAD_NAME : Initialise une fonction
+	--> CALL_FUNCTION : appelle la fonction
+	--> POP_TOP : pop la fonction en haut de la pile
+	--> COMPARE_OP : comparateur logique
+	--> POP_JUMP_IF_FALSE : Saute si la condition surjascente est fausse
+	--> RETURN_VALUE : Dépile une valeur et la renvoie
+	--> BUILD_LIST n : Crée une liste des n elements de dessus
+	--> BUILD_TUPLE n : Même principe
+
+
+--> Il y a des jump pour les conditions, les fins de boucles etc, comme en assembleur. Sauf qu'en pyc, on precise ce qu'on doit POP. 
+
+--> Le bytecode peut nous permettre de nous rendre compte de si une fonction sera plus rapide à executer qu'une autre avec le nombre et la complexité des instructions
+exemple :
+def semaine_lente():
+    secondes_par_jour = 86400
+    return secondes_par_jour * 7 
+
+def semaine_rapide():
+    return 86400*7
+
+print(dis(semaine_lente))
+print(dis(semaine_rapide))
+
+--> semaine lente demande à charger une variable en plus comme nous montre le bytecode ci-dessous:
+Fonction lente :
+ 19           RESUME                   0
+
+ 20           LOAD_CONST               0 (86400)
+              STORE_FAST               0 (secondes_par_jour)
+
+ 21           LOAD_FAST_BORROW         0 (secondes_par_jour)
+              LOAD_SMALL_INT           7
+              BINARY_OP                5 (*)
+              RETURN_VALUE
+None
+Fonction rapide :
+ 23           RESUME                   0
+
+ 24           LOAD_CONST               1 (604800)
+              RETURN_VALUE
+None
+
+
+______________________________________________________________________________________________________________________________________________________________
+
+--> Pour ce qui est des fonctions, on utilise le système de frames
+--> Quand on apelle une fonction, on sauvegarde l'etat actuel (pile, pointeurs, variables...), on crée une nouvelle frame, on execute son bytecode, puis on restaure le contexte d'avant
+--> Chaque fonctions ont leur propres variables locales dans leur frame, il y a une sorte d'envapsulation
+ 
