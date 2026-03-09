@@ -1,4 +1,5 @@
 import dis
+from code_objet import CompilerToCodeObject
 
 class Stack():
 
@@ -21,13 +22,13 @@ class Stack():
     def pushAll(self):
         new = []
         while len(self.pile)>0:
-            self.pile.pop()
+            new += [self.pile.pop()]
         return new
 
 
 class Frame():
 
-    def __init__(self, bytecode:Bytecode, locals:dict): #Chaque frame à ses propres variables locales, son propre bytecode, et donc son propre
+    def __init__(self, bytecode:Bytecode, locals:dict): #chaque frame à ses propres variables locales, son propre bytecode, et donc son propre stack
         self.btc = bytecode
         self.loc = locals
         self.stack = Stack()
@@ -102,7 +103,7 @@ def miniVm(instructions:Bytecode):
             b = current_frame.stackRem()
             a = current_frame.stackRem()
             op = inst[1]
-            if op == "==":
+            if op == "EQEQ":
                 current_frame.stackAdd(a == b)
             elif op == "<":
                 current_frame.stackAdd(a < b)
@@ -125,7 +126,7 @@ def miniVm(instructions:Bytecode):
         elif inst[0] == "JUMP_ABSOLUTE":
             current_frame.pointeur = inst[1]
         elif inst[0] == "MAKE_FUNCTION":
-            func_name, func_code = inst[1] #Rajoute la fonction au dictionnaire 
+            func_name, func_code = inst[1] #rajoute la fonction au dictionnaire 
             functions[func_name] = func_code
         elif inst[0] == "CALL_FUNCTION":
             func_name, arg_count = inst[1]
@@ -146,42 +147,31 @@ def miniVm(instructions:Bytecode):
             value = current_frame.stackRem()
             current_frame = call_stack.depiler()
             current_frame.stackAdd(value)
+        elif inst[0] == "STORE_NAME":
+            current_frame.loc[inst[1]] = current_frame.stackRem()
+        elif inst[0] == "LOAD_NAME":
+            current_frame.stack.empiler(loc[inst[1]])
 
     if current_frame.stack.taille() > 0:
         res = current_frame.stackRem()
     return res
 
 
+def coCodeToBytecode(code_object : CompilerToCodeObject):
+    """Transforme le code objet en instructions de bytecode executable par ma vm"""
+    bytecode = code_object.code.co_code
+    varnames = code_object.code.co_varnames
+    consts = code_object.code.co_consts
+    names = code_object.code.co_names
+    btc = Bytecode()
+    for i in range(0, len(bytecode)):
+        if bytecode[i].op == "LOAD_CONST":
+            btc.ajouter_instruction(bytecode[i].op, consts[bytecode[i].arg])
+        elif bytecode[i].op == "LOAD_NAME":
+            btc.ajouter_instruction(bytecode[i].op, names[bytecode[i].arg])
+        else :
+            btc.ajouter_instruction(bytecode[i].op, bytecode[i].arg)
+    return btc
 
 
-#test1 pour les conditions
-test = Bytecode()
-test.ajouter_instruction("LOAD_CONST", 5)
-test.ajouter_instruction("LOAD_CONST", 3)
-test.ajouter_instruction("COMPARE_OP", "<")
-test.ajouter_instruction("POP_JUMP_IF_FALSE", 5)  # sauter à "Non" si condition fausse
-test.ajouter_instruction("LOAD_CONST", "Oui")
-test.ajouter_instruction("JUMP_ABSOLUTE", 6)      # sauter "Non"
-test.ajouter_instruction("LOAD_CONST", "Non")
-
-result = miniVm(test)
-print(result)
-
-#test 2 pour les fonctions
-
-# Bytecode de la fonction
-add_code = Bytecode()
-add_code.ajouter_instruction("LOAD_FAST", "arg0")
-add_code.ajouter_instruction("LOAD_FAST", "arg1")
-add_code.ajouter_instruction("BINARY_ADD")
-add_code.ajouter_instruction("RETURN_VALUE")
-
-# Programme principal
-main = Bytecode()
-main.ajouter_instruction("MAKE_FUNCTION", ("add", add_code))
-main.ajouter_instruction("LOAD_CONST", 5)
-main.ajouter_instruction("LOAD_CONST", 3)
-main.ajouter_instruction("CALL_FUNCTION", ("add", 2))
-
-result2 = miniVm(main)
-print(result2)
+        

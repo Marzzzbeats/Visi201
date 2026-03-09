@@ -1,6 +1,6 @@
 
 
-
+from mini_interpreteur import miniVm
 from lexer import lex
 from parser import *
 from code_objet import CompilerToCodeObject
@@ -22,8 +22,10 @@ if __name__ == "__main__":
 
     # print(dump(ast, indent=2))
 
+
     code_object = CompilerToCodeObject(ast)
 
     module_code_object = code_object.compile()
-    dump_codeobject(module_code_object)
+
+    #dump_codeobject(module_code_object)
 
