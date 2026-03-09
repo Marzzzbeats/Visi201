@@ -1,6 +1,6 @@
 
 
-from mini_interpreteur import miniVm
+from mini_interpreteur import miniVm, coCodeToBytecode
 from lexer import lex
 from parser import *
 from code_objet import CompilerToCodeObject
@@ -26,6 +26,12 @@ if __name__ == "__main__":
     code_object = CompilerToCodeObject(ast)
 
     module_code_object = code_object.compile()
+
+    new_bytecode = coCodeToBytecode(module_code_object)
+
+    result = miniVm(new_bytecode)
+
+    print(result)
 
     #dump_codeobject(module_code_object)
 

@@ -77,6 +77,7 @@ class Bytecode():
 def miniVm(instructions:Bytecode):
     """Fonction qui prend en entrée une liste d'instruction de bytecode et l'execute. Fait l'effet d'une "mini VM Python" ou un interprêteur de Bytecode créé pour des fonctions de base simples"""
     functions = {}
+    global_vars = {}  # dictionnaire pour le niveau module
     call_stack = Stack()
     current_frame = Frame(instructions, {})
     res = None
@@ -171,9 +172,19 @@ def miniVm(instructions:Bytecode):
             current_frame = call_stack.depiler()
             current_frame.stackAdd(value)
         elif inst[0] == "STORE_NAME":
-            current_frame.loc[inst[1]] = current_frame.stackRem()
+            if call_stack.taille() == 0 or current_frame == call_stack.pile[0]: #mets dans global si on est dans le frame de base
+                global_vars[name] = current_frame.stackRem()
+            else:
+                current_frame.loc[name] = current_frame.stackRem()
         elif inst[0] == "LOAD_NAME":
-            current_frame.stack.empiler(current_frame.loc[inst[1]])
+            name = inst[1]
+            if name in current_frame.loc:  # local first
+                value = current_frame.loc[name]
+            elif name in global_vars:      # puis regarde sur global
+                value = global_vars[name]
+            else:
+                raise NameError(f"name '{name}' is not defined")
+            current_frame.stackAdd(value)
         elif inst[0] == "POP_TOP":
             current_frame.stackRem()
 
@@ -184,10 +195,10 @@ def miniVm(instructions:Bytecode):
 
 def coCodeToBytecode(code_object : CompilerToCodeObject):
     """Transforme le code objet en instructions de bytecode executable par ma vm"""
-    bytecode = code_object.code.co_code
-    varnames = code_object.code.co_varnames
-    consts = code_object.code.co_consts
-    names = code_object.code.co_names
+    bytecode = code_object.co_code
+    varnames = code_object.co_varnames
+    consts = code_object.co_consts
+    names = code_object.co_names
     btc = Bytecode()
     for i in range(0, len(bytecode)):
         if bytecode[i].op == "LOAD_CONST":
