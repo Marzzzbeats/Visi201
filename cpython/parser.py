@@ -32,7 +32,7 @@ class TokenStream:
         if (tok.type == type) and (value == None or tok.value == value):
             return self.advance()
         else:
-            raise SyntaxError(f"expected {tok.type} got {tok.value} at line {tok.line} col {tok.col}")
+            raise SyntaxError(f"expected {tok.type} got {tok.value!r} at line {tok.line} col {tok.col}")
 
 
 
@@ -53,14 +53,18 @@ class Parser:
     
     def parse_statement(self):
         tok = self.ts.peek()
-        toktok = self.ts.peek(1)
         if tok.type == "NAME":
-            if toktok.type == "EQUAL":
-                return self.parse_assign()
-            else:
-                expr = self.parse_expression()
+            left = self.parse_expression()
+            if self.ts.peek().type == "EQUAL":
+                if not isinstance(left, (Name, Subscript)):
+                    raise SyntaxError("Invalid assignment target")
+                self.ts.expect("EQUAL")
+                value = self.parse_expression()
                 self.ts.expect("NEWLINE")
-                return ExprStmt(expr)
+                return Assign(left, value)
+            else:
+                self.ts.expect("NEWLINE")
+                return ExprStmt(left)
         elif tok.type == "IF":
             return self.parse_if()
         elif tok.type == "DEF":
@@ -71,6 +75,27 @@ class Parser:
             return self.parse_return()
         else:
             raise SyntaxError(f"Expected statment but got {tok.type}")
+    
+    def parse_expression(self):
+        return self.parse_bool_or()
+    
+    def parse_bool_or(self):
+        left = self.parse_bool_and()
+        tok = self.ts.peek()
+        if tok.type == "OR":
+            op = self.ts.advance()
+            right = self.parse_bool_or()
+            return BoolOp(left, op.type, right)
+        return left
+    
+    def parse_bool_and(self):
+        left = self.parse_compare()
+        tok = self.ts.peek()
+        if tok.type == "AND":
+            op = self.ts.advance()
+            right = self.parse_bool_and()
+            return BoolOp(left, op.type, right)
+        return left
         
     def parse_compare(self):
         left = self.arith()
@@ -80,9 +105,6 @@ class Parser:
             right = self.arith()
             return Compare(left, op.type, right)
         return left
-        
-    def parse_expression(self):
-        return self.parse_compare()
     
     def arith(self):
         left = self.term()  
@@ -105,11 +127,28 @@ class Parser:
         return left
 
     def postfix(self):
-        expr = self.primary()
+        expr = self.unaryop()
         tok = self.ts.peek()
-        if tok.type == "LPAREN" and isinstance(expr, Name):
+
+        while True:
+            tok = self.ts.peek()
+            if tok.type == "LPAREN":
                 args = self.parse_call_args()
                 expr = Call(expr, args)
+            elif tok.type == "LBRACKET":
+                expr = self.parse_subscript(expr)
+            else:
+                break
+        return expr
+    
+    def unaryop(self):
+        tok = self.ts.peek()
+        if tok.type in ["NOT", "MINUS"]:
+            self.ts.advance()
+            operand = self.unaryop()
+            expr = UnaryOp(tok.type, operand)
+        else:
+            expr = self.primary()
         return expr
 
     def primary(self):
@@ -123,15 +162,62 @@ class Parser:
                 expr  = Boolean(True)
             elif tok.value == "False":
                 expr = Boolean(False)
+            elif tok.value == "None":
+                expr = NoneLiteral()
             else:
                 expr = Name(tok.value)
+        elif tok.type == "STRING":
+            self.ts.expect("STRING")
+            expr = String(tok.value)
         elif tok.type == "LPAREN":
             self.ts.expect("LPAREN")
             expr = self.parse_expression()
             self.ts.expect("RPAREN")
+        elif tok.type == "LBRACKET":
+            self.ts.expect("LBRACKET")
+            expr = self.parse_list()
+            self.ts.expect("RBRACKET")
+        elif tok.type == "LBRACE":
+            self.ts.expect("LBRACE")
+            expr = self.parse_dict()
+            self.ts.expect("RBRACE")
         else:
             raise SyntaxError
         return expr
+    
+    def parse_subscript(self, value):
+        self.ts.expect("LBRACKET")
+        index = self.parse_expression()
+        self.ts.expect("RBRACKET")
+        return Subscript(value, index)
+    
+    def parse_list(self):
+        if self.ts.peek().type == "RBRACKET":
+            return ListNode([])
+        else:
+            elms = [self.parse_expression()]
+            while self.ts.peek().type == "COMMA":
+                self.ts.expect("COMMA")
+                if self.ts.peek().type == "RBRACKET":
+                    break
+                elms.append(self.parse_expression())
+        return ListNode(elms)
+    
+    def parse_dict(self):
+        if self.ts.peek().type == "RBRACE":
+            return DictNode([],[])
+        else:
+            keys = [self.parse_expression()]
+            self.ts.expect("COLON")
+            values = [self.parse_expression()]
+            while self.ts.peek().type == "COMMA":
+                self.ts.expect("COMMA")
+                if self.ts.peek().type == "RBRACE":
+                    break
+                keys.append(self.parse_expression())
+                self.ts.expect("COLON")
+                values.append(self.parse_expression())
+        return DictNode(keys, values)
 
     def parse_assign(self):
         name = self.ts.expect("NAME").value
@@ -236,11 +322,9 @@ class Parser:
         after_return = self.ts.peek()
         if after_return.type == "NEWLINE":
             return_value = Return(None)
-        elif after_return.type in ["NAME", "NUMBER"]:
+        else:
             expr = self.parse_expression()
             return_value = Return(expr)
-        else:
-            raise SyntaxError
         self.ts.expect("NEWLINE")
         return return_value
     

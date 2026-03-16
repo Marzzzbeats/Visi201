@@ -1,7 +1,7 @@
 
 
 from typing import Any
-
+from ast_node import *
 
 class Instr:
     def __init__(self, op: str, arg: Any | None = None):
@@ -41,6 +41,8 @@ class CompilerToCodeObject:
         self.emit("LOAD_CONST", idx)
         self.emit("RETURN_VALUE")
         return self.code
+    
+    # utilitaire
 
     def emit(self, op, arg=None):
         instr = Instr(op, arg)
@@ -56,6 +58,9 @@ class CompilerToCodeObject:
 
     def in_function(self):
         return self.code.co_name != "<module>"
+    
+
+    # les indexs
 
     def const_index(self, value):
         for idx, existing in enumerate(self.code.co_consts):
@@ -83,6 +88,9 @@ class CompilerToCodeObject:
             if varname == existing:
                 return idx
         raise NotImplementedError
+    
+
+    # la partie qui compile
 
     def visit(self, node):
         visit = f"visit_{node.__class__.__name__}"
@@ -97,6 +105,14 @@ class CompilerToCodeObject:
         idx = self.const_index(node.value)
         self.emit("LOAD_CONST", idx)
 
+    def visit_String(self, node):
+        idx = self.const_index(node.value)
+        self.emit("LOAD_CONST", idx)
+
+    def visit_NoneLiteral(self, node):
+        idx = self.const_index(node.value)
+        self.emit("LOAD_CONST", idx)
+
     def visit_Name(self, node):
         if self.in_function() and node.ID in self.code.co_varnames:
             idx = self.fast_index(node.ID)
@@ -105,27 +121,64 @@ class CompilerToCodeObject:
             idx = self.name_index(node.ID)
             self.emit("LOAD_NAME", idx)
 
-    def visit_Assign(self, node):
+    def visit_ListNode(self, node):
+        for value in node.values:
+            self.visit(value)
+        self.emit("BUILD_LIST", len(node.values))
+
+    def visit_DictNode(self, node):
+        for key, value in zip(node.keys, node.values):
+            self.visit(key)
+            self.visit(value)
+        self.emit("BUILD_DICT", len(node.keys))
+
+    def visit_Subscript(self, node):
         self.visit(node.value)
-        if not self.in_function():
-            target_name = node.target.ID
-            idx = self.name_index(target_name)
-            self.emit("STORE_NAME", idx)
+        self.visit(node.index)
+        self.emit("BINARY_SUBSCR")
+
+    def visit_Assign(self, node):
+        if isinstance(node.target, Name):
+            self.visit(node.value)
+            if not self.in_function():
+                target_name = node.target.ID
+                idx = self.name_index(target_name)
+                self.emit("STORE_NAME", idx)
+            else:
+                target_name = node.target.ID
+                idx = self.varname_index(target_name)
+                self.emit("STORE_FAST", idx)
+        elif isinstance(node.target, Subscript):
+            self.visit(node.target.value)
+            self.visit(node.target.index)
+            self.visit(node.value)
+            self.emit("STORE_SUBSCR")
         else:
-            target_name = node.target.ID
-            idx = self.varname_index(target_name)
-            self.emit("STORE_FAST", idx)
+            raise NotImplementedError(f"Unsupported assignment target: {type(node.target).__name__}")
 
     def visit_BinOp(self, node):
         self.visit(node.left)
         self.visit(node.right)
         self.emit("BINARY_OP", node.op)
 
-    def visit_Call(self, node):
-        self.visit(node.func)
-        for arg in node.args:
-            self.visit(arg)
-        self.emit("CALL", len(node.args))
+    def visit_UnaryOp(self, node):
+        self.visit(node.operand)
+        if node.op == "MINUS":
+            self.emit("UNARY_NEGATIVE")
+        elif node.op == "NOT":
+            self.emit("UNARY_NOT")
+        else:
+            raise SyntaxError
+    
+    def visit_BoolOp(self, node):
+        self.visit(node.left)
+        if node.op == "AND":
+            jump_end_index = self.emit_jump("JUMP_IF_FALSE")
+        elif node.op == "OR":
+            jump_end_index = self.emit_jump("JUMP_IF_TRUE")
+        self.emit("POP_TOP")
+        self.visit(node.right)
+        self.patch_jump(jump_end_index, len(self.code.co_code))
 
     def visit_Return(self, node):
         if node.value != None:
@@ -162,6 +215,12 @@ class CompilerToCodeObject:
             self.visit(stmt)
         self.emit("JUMP", start)
         self.patch_jump(jump_false_index, len(self.code.co_code))
+
+    def visit_Call(self, node):
+        self.visit(node.func)
+        for arg in node.args:
+            self.visit(arg)
+        self.emit("CALL", len(node.args))
 
     def visit_Def(self, node):
         func_code = CodeObject(co_name=node.name, co_argcount=len(node.args), co_varnames=list(node.args))
