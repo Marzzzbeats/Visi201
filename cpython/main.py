@@ -3,7 +3,8 @@
 
 from lexer import lex
 from parser import *
-from code_objet import CompilerToCodeObject
+from code_objet import *
+from scope import *
 from AI_miscs.display import dump
 from AI_miscs.codeobj_pretty import dump_codeobject
 
@@ -22,7 +23,9 @@ if __name__ == "__main__":
 
     print(dump(ast, indent=2))
 
-    code_object = CompilerToCodeObject(ast)
+    analyzer = ScopeAnalyzer()
+    scope_map = analyzer.analyze(ast)
+    code_object = CompilerToCodeObject(ast, scope_map)
 
     module_code_object = code_object.compile()
     dump_codeobject(module_code_object)

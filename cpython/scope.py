@@ -31,12 +31,6 @@ class ScopeAnalyzer:
             self.current_scope = self.scope_stack[-1]
         else:
             raise IndexError
-        
-    def cellvars(self):
-        pass
-
-    def freevars(self):
-        pass
 
     def resolve_scope(self, scope):
         # child first
@@ -74,6 +68,7 @@ class ScopeAnalyzer:
 
     def analyze(self, node):
         self.visit(node)
+        self.resolve_scope(self.scope_stack[0])
         return self.scope_map
     
 
@@ -105,7 +100,6 @@ class ScopeAnalyzer:
 
     def visit_Name(self, node):
         self.current_scope.used_here.add(node.ID)
-
 
 
     def visit_ExprStmt(self, node):

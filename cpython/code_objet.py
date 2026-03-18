@@ -30,8 +30,9 @@ class CodeObject:
 
 
 class CompilerToCodeObject:
-    def __init__(self, ast):
+    def __init__(self, ast, scope_map):
         self.ast = ast
+        self.scope_map = scope_map
         self.code = CodeObject()
 
     def compile(self):
