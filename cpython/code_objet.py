@@ -104,6 +104,12 @@ class CompilerToCodeObject:
                 return idx
         raise NotImplementedError
     
+    def deref_index(self, name):
+        # IMPORTANT : cellvars then freevars
+        try:
+            return self.code.co_cellvars.index(name)
+        except ValueError:
+            return len(self.code.co_cellvars) + self.code.co_freevars.index(name)
 
     # la partie qui compile
 
@@ -261,6 +267,11 @@ class CompilerToCodeObject:
             self.emit("RETURN_VALUE")
         
         self.code = old_code
+
+        for freevar in func_code.co_freevars:
+            idx = self.deref_index(freevar)
+            self.emit("LOAD_CLOSURE", idx)
+        self.emit("BUILD_LIST", len(func_code.co_freevars))
 
         const_idx = len(self.code.co_consts)
         self.code.co_consts.append(func_code)
