@@ -24,6 +24,8 @@ class CodeObject:
         self.co_names: list[str] = []
         self.co_consts: list[object] = []
         self.co_code: list[Instr] = []
+        self.co_cellvars: list[str] = []
+        self.co_freevars: list[str] = []
         self.co_firstlineno = co_firstlineno
         self.co_stacksize = 0
 
@@ -90,6 +92,18 @@ class CompilerToCodeObject:
                 return idx
         raise NotImplementedError
     
+    def freevar_index(self, varname: str):
+        for idx, existing in enumerate(self.code.co_freevars):
+            if varname == existing:
+                return idx
+        raise NotImplementedError
+    
+    def cellvar_index(self, varname: str):
+        for idx, existing in enumerate(self.code.co_cellvars):
+            if varname == existing:
+                return idx
+        raise NotImplementedError
+    
 
     # la partie qui compile
 
@@ -118,6 +132,9 @@ class CompilerToCodeObject:
         if self.in_function() and node.ID in self.code.co_varnames:
             idx = self.fast_index(node.ID)
             self.emit("LOAD_FAST", idx)
+        elif self.in_function() and node.ID in self.code.co_freevars:
+            idx = self.freevar_index(node.ID)
+            self.emit("LOAD_DEREF", idx)
         else:
             idx = self.name_index(node.ID)
             self.emit("LOAD_NAME", idx)
@@ -147,8 +164,12 @@ class CompilerToCodeObject:
                 self.emit("STORE_NAME", idx)
             else:
                 target_name = node.target.ID
-                idx = self.varname_index(target_name)
-                self.emit("STORE_FAST", idx)
+                if target_name in self.code.co_cellvars:
+                    idx = self.cellvar_index(target_name)
+                    self.emit("STORE_DEREF", idx)
+                else:
+                    idx = self.varname_index(target_name)
+                    self.emit("STORE_FAST", idx)
         elif isinstance(node.target, Subscript):
             self.visit(node.target.value)
             self.visit(node.target.index)
@@ -224,7 +245,10 @@ class CompilerToCodeObject:
         self.emit("CALL", len(node.args))
 
     def visit_Def(self, node):
-        func_code = CodeObject(co_name=node.name, co_argcount=len(node.args), co_varnames=list(node.args))
+        func_code: CodeObject = CodeObject(co_name=node.name, co_argcount=len(node.args), co_varnames=list(node.args))
+        scope_node = self.scope_map[node]
+        func_code.co_cellvars = list(scope_node.cellvars)
+        func_code.co_freevars = list(scope_node.freevars)
 
         old_code = self.code
         self.code = func_code

@@ -21,11 +21,15 @@ if __name__ == "__main__":
     parser = Parser(lexed_source)
     ast = parser.parse()
 
-    print(dump(ast, indent=2))
+    # print(dump(ast, indent=2))
 
     analyzer = ScopeAnalyzer()
     scope_map = analyzer.analyze(ast)
     code_object = CompilerToCodeObject(ast, scope_map)
+
+    # for key, value in scope_map.items():
+    #     print(f"========{key.name}==========\n{dump_scope(value)}\n")
+    # print()
 
     module_code_object = code_object.compile()
     dump_codeobject(module_code_object)

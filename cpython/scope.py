@@ -2,8 +2,18 @@
 
 
 
+def dump_scope(scope_obj, indent=0):
+    s = ""
+    for line in scope_obj.manual_repr():
+        s += " " * indent + line
+    # for child in scope_obj.children:
+    #     s += "\n" + dump_scope(child, indent + 8)
+    return s
+
+
+
 class ScopeInfo:
-    def __init__(self, kind: str, name: str, parent: "ScopeInfo"|None):
+    def __init__(self, kind: str, name: str, parent):
         self.kind = kind
         self.name = name
         self.parent = parent
@@ -12,6 +22,17 @@ class ScopeInfo:
         self.used_here = set()
         self.cellvars = set()
         self.freevars = set()
+    
+    def manual_repr(self):
+        return [
+            f"ScopeInfo(\n",
+            f"  kind={self.kind!r}, name={self.name!r},\n",
+            f"  assigned={sorted(self.assigned_here)},\n",
+            f"  used={sorted(self.used_here)},\n",
+            f"  cellvars={sorted(self.cellvars)},\n",
+            f"  freevars={sorted(self.freevars)}\n",
+            f")"
+        ]
 
 
 
@@ -75,8 +96,8 @@ class ScopeAnalyzer:
 
     def visit(self, node):
         visit = f"visit_{node.__class__.__name__}"
-        if node.__class__.__name__ in ["Def", "Module", "Name", "Assign"]:
-            method = getattr(self, visit)
+        method = getattr(self, visit, None)
+        if method is not None:
             return method(node)
     
     def visit_Module(self, node):
