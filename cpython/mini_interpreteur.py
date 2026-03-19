@@ -1,5 +1,5 @@
 import dis
-from cpython.code_objet import CompilerToCodeObject
+from code_objet import CompilerToCodeObject, CodeObject, Instr
 import builtins  #Sert a importer les fonctions de base de python pour la gestion des print
 
 
@@ -28,18 +28,27 @@ class Stack():
         return new
     
 class Function():
-    def __init__(self, code_obj):
+    def __init__(self, code_obj, closure):
         self.code = code_obj
         self.argcount = code_obj.co_argcount
+        if closure is not None:
+            self.closure= closure
+        else :
+            self.closure = {}
 
 
 class Frame():
 
-    def __init__(self, bytecode:Bytecode, locals:dict): #chaque frame à ses propres variables locales, son propre bytecode, et donc son propre stack
+    def __init__(self, bytecode:Bytecode, locals:dict, closure=None): #chaque frame à ses propres variables locales, son propre bytecode, et donc son propre stack
         self.btc = bytecode
         self.loc = locals
         self.stack = Stack()
         self.pointeur = 0
+        if closure is not None:
+            self.closure = closure
+        else:
+            self.closure = {}
+
 
     def next(self):
         """Renvoie l'instruction d'après dans le bytecode de la frame"""
@@ -108,7 +117,7 @@ def miniVm(instructions:Bytecode):
                 a = current_frame.stackRem()
                 division = a / b
                 current_frame.stackAdd(division)
-            elif inst[i] == "PERCENT":
+            elif inst[1] == "PERCENT":
                 b = current_frame.stackRem()
                 a = current_frame.stackRem()
                 division = a%b
@@ -141,13 +150,12 @@ def miniVm(instructions:Bytecode):
             current_frame.pointeur = inst[1]
         elif inst[0] == "MAKE_FUNCTION":
             code_obj = current_frame.stackRem()
-            func = Function(code_obj)
+            closure = current_frame.loc.copy() #recupère les variables actuelles
+            func = Function(code_obj, closure)
             current_frame.stackAdd(func)
         elif inst[0] == "CALL":
             arg_count = inst[1]
             args = []
-
-            call_stack.empiler(current_frame)
 
             for i in range(arg_count):
                 args.append(current_frame.stackRem())
@@ -169,9 +177,12 @@ def miniVm(instructions:Bytecode):
                     new_locals[val] = args[i]
 
                 current_frame = Frame(func_bytecode, new_locals)
+                current_frame.closure = func.closure
 
         elif inst[0] == "RETURN_VALUE":
             value = current_frame.stackRem()
+            if call_stack.taille() == 0: #fin du programme
+                return value  
             current_frame = call_stack.depiler()
             current_frame.stackAdd(value)
         elif inst[0] == "STORE_NAME":
@@ -184,6 +195,8 @@ def miniVm(instructions:Bytecode):
             name = inst[1]
             if name in current_frame.loc:
                 value = current_frame.loc[name]
+            elif name in current_frame.closure:
+                value = current_frame.closure[name]
             elif name in global_vars:
                 value = global_vars[name]
             #pont vers les fonctions natives de Python (j'ai été aidé par l'IA pour celle là)
@@ -225,3 +238,86 @@ def coCodeToBytecode(code_object : CompilerToCodeObject):
             
     return btc
         
+#test pour mes closures (j'ai fait creer le bytecode par une IA)
+
+#Cette fonction est la fonction que je teste :
+
+# def outer():
+#     x = 10
+    
+#     def inner():
+#         return x
+    
+#     return inner
+
+# f = outer()
+# print(f())  → 10
+
+
+
+# --- inner ---
+inner_code = CodeObject(
+    co_name="inner",
+    co_argcount=0,
+    co_varnames=[]
+)
+
+inner_code.co_names = ["x"]
+inner_code.co_consts = []
+inner_code.co_code = [
+    Instr("LOAD_NAME", 0),   # x
+    Instr("RETURN_VALUE", None)
+]
+
+
+# --- outer ---
+outer_code = CodeObject(
+    co_name="outer",
+    co_argcount=0,
+    co_varnames=[]
+)
+
+outer_code.co_names = ["x", "inner"]
+outer_code.co_consts = [10, inner_code]
+
+outer_code.co_code = [
+    Instr("LOAD_CONST", 0),   # 10
+    Instr("STORE_NAME", 0),   # x
+
+    Instr("LOAD_CONST", 1),   # inner_code
+    Instr("MAKE_FUNCTION", None),
+    Instr("STORE_NAME", 1),   # inner
+
+    Instr("LOAD_NAME", 1),    # inner
+    Instr("RETURN_VALUE", None)
+]
+
+
+# --- module ---
+module_code = CodeObject()
+
+module_code.co_names = ["outer", "f", "print"]
+module_code.co_consts = [outer_code, None]
+
+module_code.co_code = [
+    Instr("LOAD_CONST", 0),   # outer_code
+    Instr("MAKE_FUNCTION", None),
+    Instr("STORE_NAME", 0),   # outer
+
+    Instr("LOAD_NAME", 0),    # outer
+    Instr("CALL", 0),
+    Instr("STORE_NAME", 1),   # f
+
+    Instr("LOAD_NAME", 2),    # print
+    Instr("LOAD_NAME", 1),    # f
+    Instr("CALL", 0),
+    Instr("CALL", 1),
+    Instr("POP_TOP", None),
+
+    Instr("LOAD_CONST", 1),   # None
+    Instr("RETURN_VALUE", None)
+]
+
+
+btc = coCodeToBytecode(module_code)
+print(miniVm(btc))
