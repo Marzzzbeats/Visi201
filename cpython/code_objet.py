@@ -105,7 +105,7 @@ class CompilerToCodeObject:
         raise NotImplementedError
     
     def deref_index(self, name):
-        # IMPORTANT : cellvars then freevars
+        # IMPORTANT : cellvars puis freevars (Cpython fait comme ca Convention)
         try:
             return self.code.co_cellvars.index(name)
         except ValueError:
@@ -135,12 +135,16 @@ class CompilerToCodeObject:
         self.emit("LOAD_CONST", idx)
 
     def visit_Name(self, node):
-        if self.in_function() and node.ID in self.code.co_varnames:
-            idx = self.fast_index(node.ID)
-            self.emit("LOAD_FAST", idx)
-        elif self.in_function() and node.ID in self.code.co_freevars:
-            idx = self.freevar_index(node.ID)
-            self.emit("LOAD_DEREF", idx)
+        if self.in_function():
+            if node.ID in self.code.co_freevars:
+                idx = self.freevar_index(node.ID)
+                self.emit("LOAD_DEREF", idx)
+            elif node.ID in self.code.co_cellvars:
+                idx = self.cellvar_index(node.ID)
+                self.emit("LOAD_DEREF", idx)
+            elif node.ID in self.code.co_varnames:
+                idx = self.fast_index(node.ID)
+                self.emit("LOAD_FAST", idx)
         else:
             idx = self.name_index(node.ID)
             self.emit("LOAD_NAME", idx)
@@ -172,6 +176,7 @@ class CompilerToCodeObject:
                 target_name = node.target.ID
                 if target_name in self.code.co_cellvars:
                     idx = self.cellvar_index(target_name)
+                    self.varname_index(target_name)
                     self.emit("STORE_DEREF", idx)
                 else:
                     idx = self.varname_index(target_name)
