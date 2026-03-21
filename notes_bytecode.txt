@@ -88,3 +88,7 @@ ________________________________________________________________________________
 --> Quand on apelle une fonction, on sauvegarde l'etat actuel (pile, pointeurs, variables...), on crée une nouvelle frame, on execute son bytecode, puis on restaure le contexte d'avant
 --> Chaque fonctions ont leur propres variables locales dans leur frame, il y a une sorte d'envapsulation
  
+
+--> implementer les fonctions dans les fonctions (closures)
+--> Implementer un système pour tester en mettant dans un fichier puis parser
+--> implementer fonctions recursives
