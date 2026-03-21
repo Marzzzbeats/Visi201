@@ -34,6 +34,8 @@ class DumpOptions:
     show_consts: bool = True
     show_names: bool = True
     show_varnames: bool = True
+    show_freevars: bool = True
+    show_cellvars: bool = True
     recurse: bool = True
     max_const_items: int = 200
     max_code_items: int = 10_000
@@ -70,6 +72,14 @@ def dump_codeobject(codeobj: Any, *, indent: int = 0, opts: Optional[DumpOptions
     if opts.show_names:
         names = getattr(codeobj, "co_names", [])
         print(f"{pad}names({len(names)}): {names}")
+
+    if opts.show_freevars:
+        freevars = getattr(codeobj, "co_freevars", [])
+        print(f"{pad}freevars({len(freevars)}): {freevars}")
+
+    if opts.show_cellvars:
+        cellvars = getattr(codeobj, "co_cellvars", [])
+        print(f"{pad}cellvars({len(cellvars)}): {cellvars}")
 
     if opts.show_consts:
         consts = getattr(codeobj, "co_consts", [])
