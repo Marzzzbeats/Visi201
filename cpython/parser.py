@@ -32,7 +32,7 @@ class TokenStream:
         if (tok.type == type) and (value == None or tok.value == value):
             return self.advance()
         else:
-            raise SyntaxError(f"expected {tok.type} got {tok.value!r} at line {tok.line} col {tok.col}")
+            raise SyntaxError(f"expected {type} got {tok.type} ({tok.value!r}) at line {tok.line} col {tok.col}")
 
 
 
@@ -73,6 +73,11 @@ class Parser:
             return self.parse_while()
         elif tok.type == "RETURN":
             return self.parse_return()
+        elif tok.type == "CLASS":
+            return self.parse_class()
+        elif tok.type == "PASS":
+            self.ts.expect("PASS")
+            return PassNode()
         else:
             raise SyntaxError(f"Expected statment but got {tok.type}")
     
@@ -137,6 +142,8 @@ class Parser:
                 expr = Call(expr, args)
             elif tok.type == "LBRACKET":
                 expr = self.parse_subscript(expr)
+            elif tok.type == "POINT":
+                expr = self.parse_attribute(expr)
             else:
                 break
         return expr
@@ -190,6 +197,11 @@ class Parser:
         index = self.parse_expression()
         self.ts.expect("RBRACKET")
         return Subscript(value, index)
+    
+    def parse_attribute(self, inst):
+        self.ts.expect("POINT")
+        name = self.ts.expect("NAME")
+        return Attribute(inst, name.value)
     
     def parse_list(self):
         if self.ts.peek().type == "RBRACKET":
@@ -327,6 +339,15 @@ class Parser:
             return_value = Return(expr)
         self.ts.expect("NEWLINE")
         return return_value
+    
+    def parse_class(self):
+        self.ts.expect("CLASS")
+        name = self.ts.expect("NAME").value
+        self.ts.expect("COLON")
+        self.ts.expect("NEWLINE")
+        body = self.parse_block()
+        return ClassDef(name, body)
+
     
     def skip_newlines(self):
         while self.ts.match_token("NEWLINE"): 

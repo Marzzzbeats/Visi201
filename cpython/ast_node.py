@@ -132,6 +132,15 @@ class UnaryOp(Expr):
 
     def __repr__(self):
         return f"UnaryOp({self.op} {self.operand})"
+    
+
+class Attribute(Expr):
+    def __init__(self, inst: Expr, attribute: str):
+        self.inst = inst
+        self.attribute = attribute
+
+    def __repr__(self):
+        return f"Attribute({self.inst} {self.attribute})"
 
 
 
@@ -180,7 +189,7 @@ class While(Stmt):
         return f"While(test={self.test}, body={self.body})"
 
 
-class Def:
+class Def(Stmt):
     def __init__(self, name: str, args: list[str], body: list[Stmt]):
         self.name = name
         self.args = args
@@ -190,9 +199,28 @@ class Def:
         return f"Def(name={self.name}, args={self.args}, body={self.body})"
     
 
-class Call(Expr):
+class Call(Stmt):
     def __init__(self, func: Expr, args: list[Expr]):
         self.func = func
         self.args = args
+
     def __repr__(self):
         return f"Call(func={self.func}, args={self.args})"
+    
+
+class ClassDef(Stmt):
+    def __init__(self, name, body):
+        self.name = name
+        self.body = body
+
+    def __repr__(self):
+        return f"ClassDef(name={self.name}, body={self.bod})"
+
+    
+class PassNode(Stmt):
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        return f"PASS"
+    

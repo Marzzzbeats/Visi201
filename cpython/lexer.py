@@ -26,6 +26,7 @@ TOKEN_SPEC = [
     ("RBRACE",      r"\}"),
     ("COLON",       r":"),
     ("COMMA",       r","),
+    ("POINT",       r"\."),
     ("COMMENT",     r"#.*"),
     ("SKIP",        r"[ \t]+"),
 ]
@@ -64,7 +65,7 @@ class Token:
 
 
 def name_mapping(name: str, value: str, line: int, col: int) -> Token:
-    if name == "NAME" and value in {"def", "return", "if", "elif", "else", "while", "and", "or", "not"}:
+    if name == "NAME" and value in {"def", "return", "if", "elif", "else", "while", "and", "or", "not", "pass", "class"}:
         return Token(value.upper(), value, line, col)
     elif name == "STRING":
         return Token(name, value.strip('"'), line, col)

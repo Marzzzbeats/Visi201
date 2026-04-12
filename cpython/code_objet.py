@@ -165,6 +165,10 @@ class CompilerToCodeObject:
         self.visit(node.index)
         self.emit("BINARY_SUBSCR")
 
+    def visit_Attribute(self, node):
+        self.visit(node.inst)
+        self.emit("LOAD_ATTR", self.name_index(node.attribute))
+
     def visit_Assign(self, node):
         if isinstance(node.target, Name):
             self.visit(node.value)
@@ -249,6 +253,9 @@ class CompilerToCodeObject:
         self.emit("JUMP", start)
         self.patch_jump(jump_false_index, len(self.code.co_code))
 
+    def visit_PassNode(self, node):
+        pass
+
     def visit_Call(self, node):
         self.visit(node.func)
         for arg in node.args:
@@ -285,6 +292,31 @@ class CompilerToCodeObject:
         self.emit("MAKE_FUNCTION")
         self.emit("STORE_NAME", self.name_index(node.name))
 
+    def visit_ClassDef(self, node):
+        class_obj = CodeObject(co_name=node.name, co_argcount=0, co_varnames=[])
+        
+        old_code = self.code
+        self.code = class_obj
+
+        for stmt in node.body:
+            self.visit(stmt)
+        
+        if not node.body or node.body[-1].__class__.__name__ != "Return":
+            idx_none = self.const_index(None)
+            self.emit("LOAD_CONST", idx_none)
+            self.emit("RETURN_VALUE")
+
+        self.code = old_code
+
+        
+        const_idx = len(self.code.co_consts)
+        self.code.co_consts.append(class_obj)
+
+        class_name_const_idx = self.const_index(node.name)
+        self.emit("LOAD_CONST", class_name_const_idx)
+        self.emit("LOAD_CONST", const_idx)
+        self.emit("MAKE_CLASS")
+        self.emit("STORE_NAME", self.name_index(node.name))
 
     def visit_ExprStmt(self, node): 
         self.visit(node.expr)

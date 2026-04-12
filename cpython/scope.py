@@ -82,6 +82,8 @@ class ScopeAnalyzer:
             for name in child.freevars:
                 if name in locals_here:
                     scope.cellvars.add(name)
+                else:
+                    scope.freevars.add(name)
 
         
 
@@ -115,13 +117,16 @@ class ScopeAnalyzer:
             self.visit(stmt)
         self.pop_top()
 
+    def visit_ClassDef(self, node):
+        for stmt in node.body:
+            self.visit(stmt)
+
     def visit_Assign(self, node):
         self.current_scope.assigned_here.add(node.target.ID)
         self.visit(node.value)
 
     def visit_Name(self, node):
         self.current_scope.used_here.add(node.ID)
-
 
     def visit_ExprStmt(self, node):
         self.visit(node.expr)
