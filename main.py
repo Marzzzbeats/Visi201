@@ -16,20 +16,20 @@ if __name__ == "__main__":
     # for elm in lex(SOURCE):
     #     print(elm)
 
-    lexed_source = lex(SOURCE)
-    parser = Parser(lexed_source)
-    ast = parser.parse()
+    lexed_source = lex(SOURCE) #lexer
+    parser = Parser(lexed_source) #parser
+    ast = parser.parse() #Création de l'arbre 
 
     # print(dump(ast, indent=2))
 
 
-    code_object = CompilerToCodeObject(ast)
+    code_object = CompilerToCodeObject(ast) 
 
-    module_code_object = code_object.compile()
+    module_code_object = code_object.compile() #transformation en code objet
 
-    new_bytecode = coCodeToBytecode(module_code_object)
+    new_bytecode = coCodeToBytecode(module_code_object) #Création du bytecode
 
-    result = miniVm(new_bytecode) #Ici sera None car c'est un programme, mais nous faisons des print dedans
+    result = miniVm(new_bytecode) #Execution du bytecode par la VM
 
     #dump_codeobject(module_code_object)
 

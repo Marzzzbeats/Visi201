@@ -4,30 +4,37 @@ import builtins  #Sert a importer les fonctions de base de python pour la gestio
 
 
 class Stack():
+    #Classe de structure de donnée de pile
 
     def __init__(self):
         self.pile = []
     
     def taille(self):
+        """Renvoie la taille de la pile"""
         return len(self.pile)
     
     def empiler(self, elt):
+        """Empile un element"""
         self.pile.append(elt)
     
     def depiler(self):
+        """Dépile un élément"""
         return self.pile.pop()
 
     def clearAll(self):
+        """Efface le contenu de la pile"""
         while len(self.pile)>0:
             self.pile.pop()
 
     def pushAll(self):
+        """Vide la pile et la renvoie"""
         new = []
         while len(self.pile)>0:
             new += [self.pile.pop()]
         return new
     
 class Function():
+    #Classe représentant l'implémentation des fonctions (usage dans les closures)
     def __init__(self, code_obj, closure):
         self.code = code_obj
         self.argcount = code_obj.co_argcount
@@ -39,13 +46,15 @@ class Function():
 
 class Frame():
 
+    #Classe représentant les Frames 
+
     def __init__(self, bytecode:Bytecode, locals:dict, closure=None): #chaque frame à ses propres variables locales, son propre bytecode, et donc son propre stack
-        self.btc = bytecode
-        self.loc = locals
-        self.stack = Stack()
-        self.pointeur = 0
+        self.btc = bytecode #bytecode
+        self.loc = locals #variables locales
+        self.stack = Stack() #stack de la frame
+        self.pointeur = 0 #pointeur d'instruction
         if closure is not None:
-            self.closure = closure
+            self.closure = closure #les potentielles closures
         else:
             self.closure = {}
 
@@ -71,9 +80,10 @@ class Frame():
 
 
 class Bytecode():
+    #Classe représentant le bytecode comme une liste d'instruction sous forme de tuples
 
     def __init__(self):
-        self.bytecode = []
+        self.bytecode = [] #liste de bytecode
 
     def ajouter_instruction(self, name, value=None):
         """Permet d'ajouter une instruction bytecode à la liste d'instruction. Selon l'instruction, la valeur peut être None"""
@@ -87,7 +97,7 @@ class Bytecode():
     
 def miniVm(instructions:Bytecode):
     """Fonction qui prend en entrée une liste d'instruction de bytecode et l'execute. Fait l'effet d'une "mini VM Python" ou un interprêteur de Bytecode créé pour des fonctions de base simples"""
-    functions = {}
+    functions = {} 
     global_vars = {}  # dictionnaire pour le niveau module
     call_stack = Stack()
     current_frame = Frame(instructions, {})
@@ -237,87 +247,3 @@ def coCodeToBytecode(code_object : CompilerToCodeObject):
             btc.ajouter_instruction(op, arg)
             
     return btc
-        
-#test pour mes closures (j'ai fait creer le bytecode par une IA)
-
-#Cette fonction est la fonction que je teste :
-
-# def outer():
-#     x = 10
-    
-#     def inner():
-#         return x
-    
-#     return inner
-
-# f = outer()
-# print(f())  → 10
-
-
-
-# --- inner ---
-inner_code = CodeObject(
-    co_name="inner",
-    co_argcount=0,
-    co_varnames=[]
-)
-
-inner_code.co_names = ["x"]
-inner_code.co_consts = []
-inner_code.co_code = [
-    Instr("LOAD_NAME", 0),   # x
-    Instr("RETURN_VALUE", None)
-]
-
-
-# --- outer ---
-outer_code = CodeObject(
-    co_name="outer",
-    co_argcount=0,
-    co_varnames=[]
-)
-
-outer_code.co_names = ["x", "inner"]
-outer_code.co_consts = [10, inner_code]
-
-outer_code.co_code = [
-    Instr("LOAD_CONST", 0),   # 10
-    Instr("STORE_NAME", 0),   # x
-
-    Instr("LOAD_CONST", 1),   # inner_code
-    Instr("MAKE_FUNCTION", None),
-    Instr("STORE_NAME", 1),   # inner
-
-    Instr("LOAD_NAME", 1),    # inner
-    Instr("RETURN_VALUE", None)
-]
-
-
-# --- module ---
-module_code = CodeObject()
-
-module_code.co_names = ["outer", "f", "print"]
-module_code.co_consts = [outer_code, None]
-
-module_code.co_code = [
-    Instr("LOAD_CONST", 0),   # outer_code
-    Instr("MAKE_FUNCTION", None),
-    Instr("STORE_NAME", 0),   # outer
-
-    Instr("LOAD_NAME", 0),    # outer
-    Instr("CALL", 0),
-    Instr("STORE_NAME", 1),   # f
-
-    Instr("LOAD_NAME", 2),    # print
-    Instr("LOAD_NAME", 1),    # f
-    Instr("CALL", 0),
-    Instr("CALL", 1),
-    Instr("POP_TOP", None),
-
-    Instr("LOAD_CONST", 1),   # None
-    Instr("RETURN_VALUE", None)
-]
-
-
-btc = coCodeToBytecode(module_code)
-print(miniVm(btc))
