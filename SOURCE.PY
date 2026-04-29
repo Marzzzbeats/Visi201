@@ -1,9 +1,14 @@
-class A:
-    def f(self):
-        pass
+try:
+    a = 2
+except ValueError:
+    b = 4
 
-a = A()
-a.f()
+# class A:
+#     def f(self):
+#         pass
+
+# a = A()
+# a.f()
 
 # def outer():
 #     x = 10

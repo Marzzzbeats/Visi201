@@ -78,6 +78,8 @@ class Parser:
         elif tok.type == "PASS":
             self.ts.expect("PASS")
             return PassNode()
+        elif tok.type == "TRY":
+            return self.parse_try()
         else:
             raise SyntaxError(f"Expected statment but got {tok.type}")
     
@@ -347,6 +349,27 @@ class Parser:
         self.ts.expect("NEWLINE")
         body = self.parse_block()
         return ClassDef(name, body)
+    
+    def parse_try(self):
+        self.ts.expect("TRY")
+        self.ts.expect("COLON")
+        self.ts.expect("NEWLINE")
+        body = self.parse_block()
+        handlers = []
+        while self.ts.peek().type == "EXCEPT":
+            self.ts.expect("EXCEPT")
+            if self.ts.peek().type != "COLON":
+                exc_type = self.parse_expression()
+            else:
+                exc_type = None
+            self.ts.expect("COLON")
+            self.ts.expect("NEWLINE")
+            handler_body = self.parse_block()
+            handlers.append(ExceptHandler(type=exc_type, name=None, body=handler_body))
+
+        if len(handlers) == 0:
+            raise SyntaxError("try without except")
+        return Try(body=body, handlers=handlers)
 
     
     def skip_newlines(self):

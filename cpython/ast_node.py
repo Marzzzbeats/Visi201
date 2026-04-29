@@ -224,3 +224,22 @@ class PassNode(Stmt):
     def __repr__(self):
         return f"PASS"
     
+
+
+class Try(Stmt):
+    def __init__(self, body: list[Stmt], handlers: list):
+        self.body = body
+        self.handlers = handlers
+
+    def __repr__(self):
+        return f"Try(body={self.body}, handlers={self.handlers})"
+
+
+class ExceptHandler(Node):
+    def __init__(self, type: Expr | None, name: str | None, body: list[Stmt]):
+        self.type = type
+        self.name = name
+        self.body = body
+
+    def __repr__(self):
+        return f"ExceptHandler(type={self.type}, name={self.name}, body={self.body})"

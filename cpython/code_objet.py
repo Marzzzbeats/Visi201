@@ -318,6 +318,25 @@ class CompilerToCodeObject:
         self.emit("MAKE_CLASS")
         self.emit("STORE_NAME", self.name_index(node.name))
 
+    def visit_Try(self, node: Try):
+        handler_start = len(self.code.co_code)
+        jump_to_handler = self.emit_jump("SETUP_TRY")
+
+        for stmt in node.body:
+            self.visit(stmt)
+
+        self.emit("POP_TRY")
+        jump_end = self.emit_jump("JUMP")
+        handler_index = len(self.code.co_code)
+        self.patch_jump(jump_to_handler, handler_index)
+
+        for handler in node.handlers:
+            for stmt in handler.body:
+                self.visit(stmt)
+
+        end_index = len(self.code.co_code)
+        self.patch_jump(jump_end, end_index)
+
     def visit_ExprStmt(self, node): 
         self.visit(node.expr)
         self.emit("POP_TOP")
