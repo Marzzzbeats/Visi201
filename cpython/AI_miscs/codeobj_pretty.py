@@ -1,5 +1,11 @@
 
-# IA PAS MOI QUI EST FAIT
+
+
+## FAIT PAR L'IA
+## Permet d'afficher de manière lisible 
+## un code objet
+
+
 
 from __future__ import annotations
 from dataclasses import dataclass

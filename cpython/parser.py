@@ -1,25 +1,73 @@
 
+####################################
+##             AST                ##
+####################################
+
+## Ce fichier permet de transformer notre suite de TOKENS
+## en un AST (abstract syntax tree)
+
+
+
 from lexer import Token
 from collections.abc import Generator
 from ast_node import *
 
 
 class TokenStream:
+    """
+    Flux de tokens avec mise en tampon pour faciliter le parsing.
+
+    Permet de consommer un générateur de tokens tout en offrant des
+    opérations de lecture anticipée (peek), consommation (advance)
+    et validation (match / expect).
+
+    Attributes:
+        buffer (list[Token]): Tampon de tokens déjà lus.
+        token_gen (Generator[Token, None, None]): Générateur de tokens source.
+    """
     def __init__(self, token_gen: Generator[Token, None, None]) -> None:
         self.buffer: list = []
         self.token_gen: Generator[Token, None, None] = token_gen
 
     def peek(self, k: int=0) -> Token:
+        """
+        Retourne le k-ième token sans le consommer.
+        Remplit le buffer si nécessaire en avançant dans le générateur.
+
+        Args:
+            k (int): Position relative du token à lire (0 = courant).
+
+        Returns:
+            Token: Token à la position demandée.
+        """
         while len(self.buffer) <= k:
             self.buffer.append(next(self.token_gen))
         return self.buffer[k]
 
     def advance(self) -> Token:
+        """
+        Consomme et retourne le prochain token.
+        Si le buffer est vide, récupère d'abord un token depuis le générateur.
+
+        Returns:
+            Token: Prochain token consommé.
+        """
         if len(self.buffer) == 0:
             self.peek()
         return self.buffer.pop(0)
     
     def match_token(self, type: str, value=None) -> bool:
+        """
+        Vérifie si le prochain token correspond au type (et éventuellement à la valeur),
+        et le consomme si c'est le cas.
+
+        Args:
+            type (str): Type attendu.
+            value (Any, optional): Valeur attendue.
+
+        Returns:
+            bool: True si le token correspond et a été consommé, sinon False.
+        """
         tok: Token = self.peek()
         if (tok.type == type) and (value == None or tok.value == value):
             self.advance()
@@ -28,6 +76,20 @@ class TokenStream:
             return False
         
     def expect(self, type: str, value=None) -> Token:
+        """
+        Consomme le prochain token s'il correspond au type (et éventuellement à la valeur),
+        sinon lève une erreur.
+
+        Args:
+            type (str): Type attendu.
+            value (Any, optional): Valeur attendue.
+
+        Returns:
+            Token: Token consommé.
+
+        Raises:
+            SyntaxError: Si le token ne correspond pas.
+        """
         tok: Token = self.peek()
         if (tok.type == type) and (value == None or tok.value == value):
             return self.advance()
@@ -39,11 +101,29 @@ class TokenStream:
 
 
 class Parser:
-    def __init__(self, token_gen):
-        self.ts = TokenStream(token_gen)
+    """
+    Analyseur syntaxique (parser) construisant un AST à partir d'un flux de tokens.
 
-    def parse(self):
-        body = []
+    Utilise une descente récursive pour analyser les expressions et instructions
+    du langage et produire les nœuds correspondants.
+
+    Attributes:
+        ts (TokenStream): Flux de tokens utilisé pour le parsing.
+    """
+    def __init__(self, token_gen: Generator[Token, None, None]) -> None:
+        self.ts: TokenStream = TokenStream(token_gen)
+
+    def parse(self) -> Module:
+        """
+        Parse le programme complet.
+
+        Consomme les tokens jusqu'à EOF et construit un Module contenant
+        toutes les instructions.
+
+        Returns:
+            Module: Racine de l'AST.
+        """
+        body: list = []
         self.skip_newlines()
         while self.ts.peek().type != "EOF":
             body.append(self.parse_statement())
@@ -51,15 +131,24 @@ class Parser:
         self.ts.expect("EOF")
         return Module(body)
     
-    def parse_statement(self):
-        tok = self.ts.peek()
+    def parse_statement(self) -> Stmt:
+        """
+        Parse une instruction.
+
+        Détermine le type d'instruction à partir du token courant
+        (assignation, if, boucle, fonction, etc.).
+
+        Returns:
+            Stmt: Nœud correspondant à l'instruction.
+        """
+        tok: Token = self.ts.peek()
         if tok.type == "NAME":
-            left = self.parse_expression()
+            left: Expr = self.parse_expression()
             if self.ts.peek().type == "EQUAL":
                 if not isinstance(left, (Name, Subscript)):
                     raise SyntaxError("Invalid assignment target")
                 self.ts.expect("EQUAL")
-                value = self.parse_expression()
+                value: Expr = self.parse_expression()
                 self.ts.expect("NEWLINE")
                 return Assign(left, value)
             else:
@@ -84,9 +173,15 @@ class Parser:
             raise SyntaxError(f"Expected statment but got {tok.type}")
     
     def parse_expression(self):
+        """
+        Parse une expression.
+        """
         return self.parse_bool_or()
     
     def parse_bool_or(self):
+        """
+        Parse les opérations logiques OR.
+        """
         left = self.parse_bool_and()
         tok = self.ts.peek()
         if tok.type == "OR":
@@ -96,6 +191,9 @@ class Parser:
         return left
     
     def parse_bool_and(self):
+        """
+        Parse les opérations logiques AND.
+        """
         left = self.parse_compare()
         tok = self.ts.peek()
         if tok.type == "AND":
@@ -105,6 +203,10 @@ class Parser:
         return left
         
     def parse_compare(self):
+        """
+        Parse les comparaisons.
+        Gère les opérateurs de comparaison (==, !=, <, <=, >, >=).
+        """
         left = self.arith()
         tok = self.ts.peek()
         if tok.type in ["EQEQ", "NOTEQ", "LT", "LE", "GT", "GE"]:
@@ -114,6 +216,10 @@ class Parser:
         return left
     
     def arith(self):
+        """
+        Parse les opérations arithmétiques de niveau bas (+, -).
+        Applique une évaluation gauche à droite.
+        """
         left = self.term()  
         tok = self.ts.peek()
         while tok.type in ["PLUS","MINUS"]:
@@ -124,6 +230,10 @@ class Parser:
         return left
 
     def term(self):
+        """
+        Parse les opérations multiplicatives (*, /, %).
+        Applique une évaluation gauche à droite.
+        """
         left = self.postfix()
         tok = self.ts.peek()
         while tok.type in ["STAR","PERCENT", "SLASH"]:
@@ -134,6 +244,10 @@ class Parser:
         return left
 
     def postfix(self):
+        """
+        Parse les opérations postfixées.
+        Gère les appels de fonction, accès indexé et attributs.
+        """
         expr = self.unaryop()
         tok = self.ts.peek()
 
@@ -151,6 +265,10 @@ class Parser:
         return expr
     
     def unaryop(self):
+        """
+        Parse les opérations unaires.
+        Gère les opérateurs comme NOT et le signe negatif.
+        """
         tok = self.ts.peek()
         if tok.type in ["NOT", "MINUS"]:
             self.ts.advance()
@@ -161,6 +279,9 @@ class Parser:
         return expr
 
     def primary(self):
+        """
+        Gère juste les Stmt de base
+        """
         tok = self.ts.peek()
         if tok.type == "NUMBER":
             self.ts.expect("NUMBER")
@@ -195,17 +316,33 @@ class Parser:
         return expr
     
     def parse_subscript(self, value):
+        """
+        Parse un accès indexé (subscript).
+
+        e.g.:
+            a[0]
+        """
         self.ts.expect("LBRACKET")
         index = self.parse_expression()
         self.ts.expect("RBRACKET")
         return Subscript(value, index)
     
     def parse_attribute(self, inst):
+        """
+        Parse un accès à un attribut.
+
+        e.g.:
+            obj.attr
+        """
         self.ts.expect("POINT")
         name = self.ts.expect("NAME")
         return Attribute(inst, name.value)
     
     def parse_list(self):
+        """
+        Parse une liste.
+        Gère les listes vides et les éléments séparés par des virgules.
+        """
         if self.ts.peek().type == "RBRACKET":
             return ListNode([])
         else:
@@ -218,6 +355,10 @@ class Parser:
         return ListNode(elms)
     
     def parse_dict(self):
+        """
+        Parse un dictionnaire.
+        Gère les paires clé:valeur séparées par des virgules.
+        """
         if self.ts.peek().type == "RBRACE":
             return DictNode([],[])
         else:
@@ -240,6 +381,9 @@ class Parser:
         return Assign(target=Name(name), value=expr)
 
     def parse_block(self):
+        """
+        Parse un block indenté peut importe l'indentation actuel
+        """
         body = []
         self.ts.expect("INDENT")
         self.skip_newlines()
@@ -250,6 +394,9 @@ class Parser:
         return body
     
     def parse_if(self):
+        """
+        Parse une structure conditionnelle if/elif/else.
+        """
         self.ts.expect("IF")
         test = self.parse_expression()
         self.ts.expect("COLON")
@@ -261,6 +408,10 @@ class Parser:
         return If(test, body_if, orelse)
 
     def parse_elif(self):
+        """
+        Parse les clauses elif.
+        Construit récursivement une chaîne de conditions.
+        """
         if self.ts.peek().type != "ELIF":
             return []
         else:
@@ -276,6 +427,9 @@ class Parser:
                 return [If(test, body_elif, self.parse_else())]
     
     def parse_else(self):
+        """
+        Parse une clause else.
+        """
         if self.ts.peek().type != "ELSE":
             return []
         else:
@@ -286,6 +440,10 @@ class Parser:
             return body_else
         
     def parse_args(self):
+        """
+        Parse les arguments d'une fonction.
+        Retourne les noms des paramètres.
+        """
         self.ts.expect("LPAREN")
         args = []
         while self.ts.peek().type != "RPAREN":
@@ -299,6 +457,10 @@ class Parser:
         return args
     
     def parse_call_args(self):
+        """
+        Parse les arguments d'un appel de fonction.
+        Retourne les expressions passées en argument.
+        """
         self.ts.expect("LPAREN")
         args = []
         while self.ts.peek().type != "RPAREN":
@@ -313,6 +475,9 @@ class Parser:
     
 
     def parse_def(self):
+        """
+        Parse une définition de fonction.
+        """
         self.ts.expect("DEF")
         name = self.ts.expect("NAME")
         args = self.parse_args()
@@ -323,6 +488,9 @@ class Parser:
         
     
     def parse_while(self):
+        """
+        Parse une boucle while.
+        """
         self.ts.expect("WHILE")
         test = self.parse_expression()
         self.ts.expect("COLON")
@@ -332,6 +500,9 @@ class Parser:
 
     
     def parse_return(self):
+        """
+        Parse une instruction return.
+        """
         self.ts.expect("RETURN")
         after_return = self.ts.peek()
         if after_return.type == "NEWLINE":
@@ -343,6 +514,9 @@ class Parser:
         return return_value
     
     def parse_class(self):
+        """
+        Parse une définition de classe.
+        """
         self.ts.expect("CLASS")
         name = self.ts.expect("NAME").value
         self.ts.expect("COLON")
@@ -351,6 +525,10 @@ class Parser:
         return ClassDef(name, body)
     
     def parse_try(self):
+        """
+        Parse un bloc try/except.
+        Lève une erreur si aucun handler n'est présent.
+        """
         self.ts.expect("TRY")
         self.ts.expect("COLON")
         self.ts.expect("NEWLINE")
