@@ -1,7 +1,7 @@
 
 
 from typing import Any
-from ast_node import *
+from cpython.ast_node import *
 
 class Instr:
     def __init__(self, op: str, arg: Any | None = None):
