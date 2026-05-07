@@ -1,5 +1,11 @@
 
-# 100% IA G RIEN FAIT SUR CETTE FILE
+
+
+## FAIT PAR L'IA
+## Permet d'afficher de manière lisible 
+## un AST
+
+
 
 def dump(node, *, indent: int = 2) -> str:
     """

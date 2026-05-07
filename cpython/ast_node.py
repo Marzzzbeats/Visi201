@@ -1,4 +1,12 @@
 
+####################################
+##            NODES AST           ##
+####################################
+
+## Ce fichier permet de definir tout les differents 
+## noeuds de l'AST
+
+
 
 class Module:
     def __init__(self, body):
@@ -36,6 +44,7 @@ class Boolean(Expr):
     def __repr__(self):
         return f"Bool({self.value})"
 
+
 class Number(Expr):
     def __init__(self, value: int):
         self.value = value
@@ -50,6 +59,48 @@ class Name(Expr):
 
     def __repr__(self):
         return f"Name({self.ID})"
+
+
+class String(Expr):
+    def __init__(self, value: str):
+        self.value = value
+
+    def __repr__(self):
+        return f"String({self.value!r})"
+
+
+class NoneLiteral(Expr):
+    def __init__(self):
+        self.value = None
+
+    def __repr__(self):
+        return "NoneLiteral(None)"
+    
+    
+class ListNode(Expr):
+    def __init__(self, lst: list[Expr]):
+        self.values = lst 
+
+    def __repr__(self):
+        return f"ListNode({self.values})"
+
+
+class DictNode(Expr):
+    def __init__(self, keys: list[Expr], values: list[Expr]):
+        self.keys = keys
+        self.values = values
+
+    def __repr__(self):
+        return f"DictNode({self.values})"
+    
+
+class Subscript(Expr):
+    def __init__(self, value: Expr, index: Expr):
+        self.value = value
+        self.index = index
+
+    def __repr__(self):
+        return f"Subscript{self.value}[{self.index}]"
 
 
 class Compare(Expr):
@@ -70,6 +121,35 @@ class BinOp(Expr):
 
     def __repr__(self):
         return f"BinOp({self.left} {self.op} {self.right})"
+    
+
+class BoolOp(Expr):
+    def __init__(self, left: Expr, op: str, right: Expr):
+        self.left = left
+        self.op = op
+        self.right = right
+
+    def __repr__(self):
+        return f"BoolOp({self.left} {self.op} {self.right})"
+    
+
+class UnaryOp(Expr):
+    def __init__(self, op: str, operand: Expr):
+        self.op = op
+        self.operand = operand
+
+    def __repr__(self):
+        return f"UnaryOp({self.op} {self.operand})"
+    
+
+class Attribute(Expr):
+    def __init__(self, inst: Expr, attribute: str):
+        self.inst = inst
+        self.attribute = attribute
+
+    def __repr__(self):
+        return f"Attribute({self.inst} {self.attribute})"
+
 
 
 # ---------- statements ----------
@@ -82,7 +162,7 @@ class ExprStmt(Stmt):
 
 
 class Assign(Stmt):
-    def __init__(self, target: Name, value: Expr):
+    def __init__(self, target: Expr, value: Expr):
         self.target = target
         self.value = value
 
@@ -117,7 +197,7 @@ class While(Stmt):
         return f"While(test={self.test}, body={self.body})"
 
 
-class Def:
+class Def(Stmt):
     def __init__(self, name: str, args: list[str], body: list[Stmt]):
         self.name = name
         self.args = args
@@ -127,9 +207,47 @@ class Def:
         return f"Def(name={self.name}, args={self.args}, body={self.body})"
     
 
-class Call(Expr):
+class Call(Stmt):
     def __init__(self, func: Expr, args: list[Expr]):
         self.func = func
         self.args = args
+
     def __repr__(self):
         return f"Call(func={self.func}, args={self.args})"
+    
+
+class ClassDef(Stmt):
+    def __init__(self, name, body):
+        self.name = name
+        self.body = body
+
+    def __repr__(self):
+        return f"ClassDef(name={self.name}, body={self.bod})"
+
+    
+class PassNode(Stmt):
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        return f"PASS"
+    
+
+
+class Try(Stmt):
+    def __init__(self, body: list[Stmt], handlers: list):
+        self.body = body
+        self.handlers = handlers
+
+    def __repr__(self):
+        return f"Try(body={self.body}, handlers={self.handlers})"
+
+
+class ExceptHandler(Node):
+    def __init__(self, type: Expr | None, name: str | None, body: list[Stmt]):
+        self.type = type
+        self.name = name
+        self.body = body
+
+    def __repr__(self):
+        return f"ExceptHandler(type={self.type}, name={self.name}, body={self.body})"

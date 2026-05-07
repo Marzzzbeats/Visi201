@@ -1,14 +1,20 @@
-a = 1
-b = 2
-c = a + b
-print(c)
+try:
+    a = 2
+except ValueError:
+    b = 4
 
-def even(x):
-    y = 1 + a*b
-    if x%2==0:  
-        res = True
-    else:
-        res = False
-    return res
+# class A:
+#     def f(self):
+#         pass
 
-print(even(c))
+# a = A()
+# a.f()
+
+# def outer():
+#     x = 10
+#     def middle():
+#         def inner():
+#             return x
+#         return
+#     x = 20
+#     return
