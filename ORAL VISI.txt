@@ -1,0 +1,60 @@
+ORAL VISI 
+
+Intro compilation :
+Avant toute chose, je me dois de faire une petite parenthèse afin de bien comprendre la difference entre un langage compilé et un langage interprété.
+Un langage compilé : - A besoin d'un compilateur (programme)
+		     - Exemple avec C
+		     - .exe
+		     - Plus rapide à l'execution
+		     - Lexeur + parser
+		     - Detection des bugs plus tot
+		     
+Langage interprété : - A besoin d'un intepreteur
+		     - Transforme et execute ligne par ligne 
+		     - Plus lent mais plus flexible
+		     
+Mais qu'en est-il de python ?
+- Hybride
+- Compile en bytecode
+- execute le bytecode dans une VM
+
+____________________________________________
+
+Passons maintenant au fonctionnement de la machine virtuelle
+ - VM Simplifiée
+ - Code objet
+ - Execution du bytecode
+ - Pile
+ - Explication d'une pile
+ - Comparaison Cpython vs notre VM au niveau des piles
+ - Frame de base 
+ - Explication d'une frame
+
+Explication bytecode :
+ - Semblable à de l'assembleur
+ - Quelques instructions de base (opérations, LOAD, STORE ...)
+ 
+Je vais donc vous expliquer les 3 principaux points uns par uns, c'est à dire les fonctions, les boucles et les conditions, et les clotures
+
+Fonctions :
+	- Création :
+		- Création de la frame
+		- fonction stockée en code objet
+	- Appel :
+		- Sauvegarde de l'état de la frame + stockage dans call stack
+		- Changement de frame (ecpliquer)
+		- Execution
+		- Retour (RETURN_VALUE)
+
+Boucles et conditions :
+	- Explication des JUMP
+	- POP_JUMP_IF_TRUE / POP_JUMP_IF_FALSE
+	- Exemple while
+
+Closures :
+	- Qu'estce qu'une closure ?
+	- Comment Cpython les implémente
+	- Comment on les implémentes ?
+
+Conclusion.
+
