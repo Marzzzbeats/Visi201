@@ -1,8 +1,8 @@
 def outer():
     x = 10
-    def middle():
-        def inner():
-            return x
-        return
+    def inner():
+        return x
     x = 20
-    return
+    return inner()
+
+print(outer())

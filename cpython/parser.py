@@ -8,9 +8,9 @@
 
 
 
-from lexer import Token
+from .lexer import Token
 from collections.abc import Generator
-from cpython.ast_node import *
+from .ast_node import *
 
 
 class TokenStream:

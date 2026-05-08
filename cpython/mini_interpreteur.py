@@ -1,6 +1,18 @@
+
+####################################
+##         MACHINE VIRTUEL        ##
+####################################
+
+## Ce fichier permet de 'executer le Bytcode contenu dans le
+## code objet.
+
+
+
 import dis
-from code_objet import CompilerToCodeObject, CodeObject, Instr
+from .code_objet import *
 import builtins  #Sert a importer les fonctions de base de python pour la gestion des print
+
+
 
 
 class Stack():
@@ -27,6 +39,7 @@ class Stack():
             new += [self.pile.pop()]
         return new
     
+    
 class Function():
     def __init__(self, code_obj, closure):
         self.code = code_obj
@@ -36,6 +49,20 @@ class Function():
         else :
             self.closure = {}
 
+
+class Bytecode():
+
+    def __init__(self):
+        self.bytecode = []
+
+    def ajouter_instruction(self, name, value=None):
+        """Permet d'ajouter une instruction bytecode à la liste d'instruction. Selon l'instruction, la valeur peut être None"""
+        self.bytecode.append((name, value))
+    
+    def inst(self, ind:int):
+        """Renvoie l'instruction a l'indice ind"""
+        return self.bytecode[ind]
+    
 
 class Frame():
 
@@ -70,18 +97,6 @@ class Frame():
 
 
 
-class Bytecode():
-
-    def __init__(self):
-        self.bytecode = []
-
-    def ajouter_instruction(self, name, value=None):
-        """Permet d'ajouter une instruction bytecode à la liste d'instruction. Selon l'instruction, la valeur peut être None"""
-        self.bytecode.append((name, value))
-    
-    def inst(self, ind:int):
-        """Renvoie l'instruction a l'indice ind"""
-        return self.bytecode[ind]
     
     
     
@@ -141,11 +156,11 @@ def miniVm(instructions:Bytecode):
         elif inst[0] == "POP_JUMP_IF_FALSE":
             condition = current_frame.stackRem()
             if not condition:
-                current_frame.pointeur = inst[1] - 1  # -1 car next() incrémente le pointeur
+                current_frame.pointeur = inst[1]
         elif inst[0] == "POP_JUMP_IF_TRUE":
             condition = current_frame.stackRem()
             if condition:
-                current_frame.pointeur = inst[1] - 1
+                current_frame.pointeur = inst[1]
         elif inst[0] == "JUMP_ABSOLUTE":
             current_frame.pointeur = inst[1]
         elif inst[0] == "MAKE_FUNCTION":
@@ -237,87 +252,3 @@ def coCodeToBytecode(code_object : CompilerToCodeObject):
             btc.ajouter_instruction(op, arg)
             
     return btc
-        
-#test pour mes closures (j'ai fait creer le bytecode par une IA)
-
-#Cette fonction est la fonction que je teste :
-
-# def outer():
-#     x = 10
-    
-#     def inner():
-#         return x
-    
-#     return inner
-
-# f = outer()
-# print(f())  → 10
-
-
-
-# --- inner ---
-inner_code = CodeObject(
-    co_name="inner",
-    co_argcount=0,
-    co_varnames=[]
-)
-
-inner_code.co_names = ["x"]
-inner_code.co_consts = []
-inner_code.co_code = [
-    Instr("LOAD_NAME", 0),   # x
-    Instr("RETURN_VALUE", None)
-]
-
-
-# --- outer ---
-outer_code = CodeObject(
-    co_name="outer",
-    co_argcount=0,
-    co_varnames=[]
-)
-
-outer_code.co_names = ["x", "inner"]
-outer_code.co_consts = [10, inner_code]
-
-outer_code.co_code = [
-    Instr("LOAD_CONST", 0),   # 10
-    Instr("STORE_NAME", 0),   # x
-
-    Instr("LOAD_CONST", 1),   # inner_code
-    Instr("MAKE_FUNCTION", None),
-    Instr("STORE_NAME", 1),   # inner
-
-    Instr("LOAD_NAME", 1),    # inner
-    Instr("RETURN_VALUE", None)
-]
-
-
-# --- module ---
-module_code = CodeObject()
-
-module_code.co_names = ["outer", "f", "print"]
-module_code.co_consts = [outer_code, None]
-
-module_code.co_code = [
-    Instr("LOAD_CONST", 0),   # outer_code
-    Instr("MAKE_FUNCTION", None),
-    Instr("STORE_NAME", 0),   # outer
-
-    Instr("LOAD_NAME", 0),    # outer
-    Instr("CALL", 0),
-    Instr("STORE_NAME", 1),   # f
-
-    Instr("LOAD_NAME", 2),    # print
-    Instr("LOAD_NAME", 1),    # f
-    Instr("CALL", 0),
-    Instr("CALL", 1),
-    Instr("POP_TOP", None),
-
-    Instr("LOAD_CONST", 1),   # None
-    Instr("RETURN_VALUE", None)
-]
-
-
-btc = coCodeToBytecode(module_code)
-print(miniVm(btc))

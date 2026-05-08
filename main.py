@@ -8,13 +8,13 @@
 
 
 
-from lexer import lex
-from parser import *
-from scope import *
-from code_objet import *
-# from cpython.mini_interpreteur import miniVm, coCodeToBytecode
-from AI_miscs.display import dump
-from AI_miscs.codeobj_pretty import dump_codeobject
+from cpython.lexer import lex
+from cpython.parser import *
+from cpython.scope import *
+from cpython.code_objet import *
+from cpython.mini_interpreteur import miniVm, coCodeToBytecode
+from cpython.AI_miscs.display import dump
+from cpython.AI_miscs.codeobj_pretty import dump_codeobject
 
 
 
@@ -22,6 +22,16 @@ from AI_miscs.codeobj_pretty import dump_codeobject
 if __name__ == "__main__":
     
     # On récupere le contenu du fichier .py source voulu
+    ## AIDE
+    # src1 -> affectation et addition
+    # src2 -> fonctions
+    # src3 -> closures
+    # src4 -> boucle while
+    # src5 -> condition if
+    # src6 -> listes et subscript
+    # src7 -> try / except
+    # src8 -> classe
+    
     src: int  = 2
     with open(f"sources/src{src}.py", "r") as f:
         SOURCE = f.readlines()
@@ -45,10 +55,11 @@ if __name__ == "__main__":
 
     # Paramattre de debug/affichage en console
     params_debug = {
-        "lexer" : True,
-        "AST" : True,
+        "lexer" : False,
+        "AST" : False,
         "ScopeMap" : False,
-        "CodeObject" : True
+        "CodeObject" : True,
+        "Runtime" : True
     }
 
 
@@ -65,5 +76,8 @@ if __name__ == "__main__":
             print()
         elif (key == "CodeObject") and value:
             dump_codeobject(module_code_object)
+        elif (key == "Runtime") and value:
+            print("\n================ CONSOLE ===================")
+            miniVm(coCodeToBytecode(module_code_object))
 
 

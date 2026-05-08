@@ -9,7 +9,7 @@
 
 
 from typing import Any
-from ast_node import *
+from .ast_node import *
 
 class Instr:
     """
@@ -416,11 +416,11 @@ class CompilerToCodeObject:
 
     def visit_If(self, node):
         self.visit(node.test)
-        jump_false_index = self.emit_jump("JUMP_IF_FALSE")
+        jump_false_index = self.emit_jump("POP_JUMP_IF_FALSE")
         for stmt in node.body:
             self.visit(stmt)
         if node.orelse:
-            jump_end_index = self.emit_jump("JUMP")
+            jump_end_index = self.emit_jump("JUMP_ABSOLUTE")
             self.patch_jump(jump_false_index, jump_end_index+1)
             for stmt in node.orelse:
                 self.visit(stmt)
@@ -431,10 +431,10 @@ class CompilerToCodeObject:
     def visit_While(self, node):
         start = len(self.code.co_code)
         self.visit(node.test)
-        jump_false_index = self.emit_jump("JUMP_IF_FALSE")
+        jump_false_index = self.emit_jump("POP_JUMP_IF_FALSE")
         for stmt in node.body:
             self.visit(stmt)
-        self.emit("JUMP", start)
+        self.emit("JUMP_ABSOLUTE", start)
         self.patch_jump(jump_false_index, len(self.code.co_code))
 
     def visit_PassNode(self, node):
@@ -531,7 +531,7 @@ class CompilerToCodeObject:
             self.visit(stmt)
 
         self.emit("POP_TRY")
-        jump_end = self.emit_jump("JUMP")
+        jump_end = self.emit_jump("JUMP_ABSOLUTE")
         handler_index = len(self.code.co_code)
         self.patch_jump(jump_to_handler, handler_index)
 
