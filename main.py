@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # src7 -> try / except
     # src8 -> classe
     
-    src: int  = 2
+    src: int  = 1
     with open(f"sources/src{src}.py", "r") as f:
         SOURCE = f.readlines()
 
@@ -55,9 +55,9 @@ if __name__ == "__main__":
 
     # Paramattre de debug/affichage en console
     params_debug = {
-        "lexer" : False,
-        "AST" : False,
-        "ScopeMap" : False,
+        "lexer" : True,
+        "AST" : True,
+        "ScopeMap" : True,
         "CodeObject" : True,
         "Runtime" : True
     }
